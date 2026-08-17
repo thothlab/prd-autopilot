@@ -34,6 +34,12 @@ npx skills add thothlab/prd-autopilot --skill prd -a claude-code -g -y
 
 </details>
 
+Установщик принимает и локальный путь — репозиторий не обязан быть на GitHub:
+
+```bash
+npx skills add ~/Documents/Projects/prd-autopilot --skill prd -a claude-code -g -y
+```
+
 **Требуется:** [Node.js](https://nodejs.org) (для `npx`) и любой поддерживаемый AI-агент. Больше ничего.
 
 После установки **перезапустите сессию агента** — навыки читаются при старте.
