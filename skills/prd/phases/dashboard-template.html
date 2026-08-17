@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>prd</title>
+<style>
+  :root, :root[data-theme="light"]{
+    --bg:#fbfbfa; --panel:#fff; --ink:#16150f; --dim:#6b6a63; --line:#e4e3dd;
+    --accent:#111; --ok:#1f7a4d; --warn:#a8700a; --bad:#b3352b; --ghost:#eeede8; --info:#2f6690;
+    --radius:14px; --logo-light:block; --logo-dark:none; --glow:rgba(168,112,10,.38);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme]){
+      --bg:#141412; --panel:#1c1c19; --ink:#f2f1ea; --dim:#918f86; --line:#2e2e29;
+      --accent:#f2f1ea; --ok:#4bbd84; --warn:#d9a341; --bad:#e0685c; --ghost:#262622; --info:#7aa8d4;
+      --glow:rgba(217,163,65,.45);
+      --logo-light:none; --logo-dark:block;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141412; --panel:#1c1c19; --ink:#f2f1ea; --dim:#918f86; --line:#2e2e29;
+    --accent:#f2f1ea; --ok:#4bbd84; --warn:#d9a341; --bad:#e0685c; --ghost:#262622; --info:#7aa8d4;
+    --logo-light:none; --logo-dark:block;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    -webkit-font-smoothing:antialiased;padding:34px 20px 60px}
+  .wrap{max-width:1040px;margin:0 auto;min-width:0}
+  /* wrap на .top: в узкой панели переключатели уходят на вторую строку, а не за край */
+  .top{display:flex;align-items:flex-start;gap:16px;margin-bottom:8px;flex-wrap:wrap}
+  .logo{font:700 clamp(30px,5vw,46px)/1 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+    letter-spacing:-.03em;color:var(--ink);user-select:none}
+  .logo b{color:var(--accent);font-weight:700}
+  .segs{margin-left:auto;display:flex;gap:8px;flex:0 0 auto}
+  .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .seg button{appearance:none;border:0;background:transparent;color:var(--dim);cursor:pointer;
+    font:600 11px/1 inherit;letter-spacing:.08em;padding:8px 12px;display:flex;align-items:center}
+  .seg button:hover{color:var(--ink)}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:var(--bg)}
+  .seg svg{width:13px;height:13px;display:block}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;margin-bottom:22px}
+  h1{font-size:17px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .badges{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:600;
+    border:1px solid var(--bd,var(--line));border-radius:999px;padding:3px 10px;
+    color:var(--fg,var(--dim));background:var(--bbg,transparent)}
+  /* режим — синяя семья, насыщенность растёт с автономией */
+  .b-mode-1{--bbg:#eff4fb;--bd:#cfdcef;--fg:#4a6d9e}
+  .b-mode-2{--bbg:#e9f0fa;--bd:#c3d4eb;--fg:#3d6293}
+  .b-mode-3{--bbg:#e3ecf9;--bd:#b6cce8;--fg:#2f5688}
+  .b-mode-4{--bbg:#d6e3f6;--bd:#9dbbe0;--fg:#1f4374}
+  /* глубина — фиолетовая семья */
+  .b-depth-1{--bbg:#f4f0fa;--bd:#ddd2ee;--fg:#6b559b}
+  .b-depth-2{--bbg:#ece5f7;--bd:#cbbbe6;--fg:#573f8b}
+  .b-depth-3{--bbg:#e2d8f3;--bd:#b8a3dd;--fg:#452f78}
+  /* ярус — охра, насыщенность растёт с объёмом работы */
+  .b-tier-0{--bbg:#f7f3e8;--bd:#e5dbc3;--fg:#7d6b45}
+  .b-tier-1{--bbg:#f3ecdb;--bd:#dbcda9;--fg:#6e5c34}
+  .b-tier-2{--bbg:#eee4cb;--bd:#cfbc8d;--fg:#5f4d26}
+  .b-tier-3{--bbg:#e8dbb9;--bd:#c2ab72;--fg:#50401b}
+  .b-done{--bbg:#e8f3ec;--bd:#b6d9c4;--fg:#1f7a4d}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme]) .b-mode-1{--bbg:#1a2333;--bd:#2a3a52;--fg:#9cbbe6}
+    :root:not([data-theme]) .b-mode-2{--bbg:#1b263a;--bd:#2e405e;--fg:#a5c3ec}
+    :root:not([data-theme]) .b-mode-3{--bbg:#1c2942;--bd:#31466a;--fg:#aecbf2}
+    :root:not([data-theme]) .b-mode-4{--bbg:#1f2f4f;--bd:#3a5482;--fg:#c0d8fb}
+    :root:not([data-theme]) .b-depth-1{--bbg:#221d32;--bd:#372e4f;--fg:#b8a6e0}
+    :root:not([data-theme]) .b-depth-2{--bbg:#26203b;--bd:#40345c;--fg:#c5b3ec}
+    :root:not([data-theme]) .b-depth-3{--bbg:#2b2346;--bd:#4b3b6c;--fg:#d3c2f7}
+    :root:not([data-theme]) .b-tier-0{--bbg:#26221a;--bd:#3b3527;--fg:#cbb98d}
+    :root:not([data-theme]) .b-tier-1{--bbg:#2a2519;--bd:#443b26;--fg:#d6c393}
+    :root:not([data-theme]) .b-tier-2{--bbg:#2f2917;--bd:#4e4227;--fg:#e2cd97}
+    :root:not([data-theme]) .b-tier-3{--bbg:#352d16;--bd:#58492a;--fg:#edd79c}
+    :root:not([data-theme]) .b-done{--bbg:#16281f;--bd:#26432f;--fg:#4bbd84}
+  }
+  :root[data-theme="dark"] .b-mode-1{--bbg:#1a2333;--bd:#2a3a52;--fg:#9cbbe6}
+  :root[data-theme="dark"] .b-mode-2{--bbg:#1b263a;--bd:#2e405e;--fg:#a5c3ec}
+  :root[data-theme="dark"] .b-mode-3{--bbg:#1c2942;--bd:#31466a;--fg:#aecbf2}
+  :root[data-theme="dark"] .b-mode-4{--bbg:#1f2f4f;--bd:#3a5482;--fg:#c0d8fb}
+  :root[data-theme="dark"] .b-depth-1{--bbg:#221d32;--bd:#372e4f;--fg:#b8a6e0}
+  :root[data-theme="dark"] .b-depth-2{--bbg:#26203b;--bd:#40345c;--fg:#c5b3ec}
+  :root[data-theme="dark"] .b-depth-3{--bbg:#2b2346;--bd:#4b3b6c;--fg:#d3c2f7}
+  :root[data-theme="dark"] .b-tier-0{--bbg:#26221a;--bd:#3b3527;--fg:#cbb98d}
+  :root[data-theme="dark"] .b-tier-1{--bbg:#2a2519;--bd:#443b26;--fg:#d6c393}
+  :root[data-theme="dark"] .b-tier-2{--bbg:#2f2917;--bd:#4e4227;--fg:#e2cd97}
+  :root[data-theme="dark"] .b-tier-3{--bbg:#352d16;--bd:#58492a;--fg:#edd79c}
+  :root[data-theme="dark"] .b-done{--bbg:#16281f;--bd:#26432f;--fg:#4bbd84}
+  /* minmax(min(Npx,100%)): в колонке уже 200px карточка сжимается, а не вылезает за край */
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));margin-bottom:14px}
+  /* ряды показателей: четыре карточки в строку держатся дольше, чем списки долга */
+  .grid.m{grid-template-columns:repeat(auto-fit,minmax(min(168px,100%),1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;min-width:0}
+  .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  /* длинное значение («1 ч 05 мин … 2 ч 10 мин», «Спецификация») переносится, а не режется */
+  .v{font-size:30px;font-weight:650;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums;
+    overflow-wrap:anywhere}
+  .v.stage{font-size:clamp(17px,4.4vw,22px)}
+  .v small{font-size:14px;font-weight:500;color:var(--dim);letter-spacing:0}
+  .sub{font-size:12.5px;color:var(--dim);margin-top:6px;overflow-wrap:anywhere}
+  .hero{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .hero>div{min-width:0}
+  .ring{flex:0 0 84px}
+  .bar{height:6px;background:var(--ghost);border-radius:99px;overflow:hidden;margin-top:10px}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s ease}
+  .bar.lg{height:10px;margin-top:12px}
+  /* общий прогресс: этапы по весам, внутри разработки — доля готовых тасков */
+  .overall{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;margin-bottom:14px}
+  .overall-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+  .overall-head b{font-size:24px;font-weight:650;letter-spacing:-.02em;text-transform:none;
+    color:var(--ink);font-variant-numeric:tabular-nums}
+  .overall-head b small{font-size:14px;font-weight:500;color:var(--dim)}
+  h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);
+    margin:26px 0 12px;font-weight:600}
+  .tl{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;min-width:0}
+  /* сводка по таскам — ответ на «где разработка» до того, как всматриваешься в полосы */
+  .tlsum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{font-size:11.5px;letter-spacing:.03em;border:1px solid var(--line);border-radius:999px;
+    padding:3px 10px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .chip.ok{border-color:var(--ok);color:var(--ok)}
+  .chip.run{border-color:var(--warn);color:var(--warn)}
+  .chip.info{border-color:var(--info);color:var(--info)}
+  .chip.bad{border-color:var(--bad);color:var(--bad)}
+  /* фаза таска прямо на плашке: «ревью» и «ремонт» — состояния, которых до
+     этого не существовало, и по одному цвету их не различить */
+  .fill .nm{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .fill .ph{margin-left:8px;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    opacity:.85;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:1px 6px;flex:none}
+  .tlnow{font-size:13px;margin:-4px 0 12px;overflow-wrap:anywhere}
+  .tlnow .lbl{color:var(--dim)}
+  .tlnow b{font-weight:650;font-variant-numeric:tabular-nums}
+  .tlnow .nowclock{color:var(--warn);font-variant-numeric:tabular-nums}
+  .wave{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:14px 0 8px}
+  .wave:first-child{margin-top:0}
+  /* minmax(0,1fr), а не 1fr: у 1fr пол — min-content, и длинное имя таска раздвигает сетку шире экрана */
+  .row{display:grid;grid-template-columns:26px minmax(0,1fr) 56px;gap:10px;align-items:center;margin-bottom:6px;font-size:13px}
+  .row b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--dim)}
+  .row.now b{color:var(--ink)}
+  .track{background:var(--ghost);border-radius:6px;height:22px;position:relative;overflow:hidden;min-width:0}
+  .fill{position:absolute;inset:0 auto 0 0;border-radius:6px;display:flex;align-items:center;
+    padding:0 8px;white-space:nowrap;font-size:12px;color:#fff;overflow:hidden}
+  /* ждущий таск — пустой контур, а не залитая дорожка: плашка теперь во всю
+     ширину, и без этого «ждёт» выглядело бы как ещё одно состояние заливки */
+  .row.wait .track{background:transparent;border:1px dashed var(--line)}
+  .fill.pend{background:transparent;border:0;color:var(--dim)}
+  /* «в работе» должно читаться как живое, а не как исчезающее: раньше плашка
+     гасла до opacity .3 вместе с названием таска. Теперь дышит свечение вокруг
+     дорожки и яркость плашки, текст остаётся читаемым всё время. */
+  .row.now .track{animation:trackGlow 1.9s ease-in-out infinite}
+  /* блик бежит по плашке идущего таска — движение без ложного процента */
+  .fill.active::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent 0,rgba(255,255,255,.30) 50%,transparent 100%);
+    transform:translateX(-100%);animation:sheen 1.9s ease-in-out infinite}
+  .mins{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim);font-size:12px}
+  /* этапы — вертикальная лента с рельсом */
+  .stages{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:4px 18px;min-width:0}
+  .st{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:start;
+    padding:10px 0;border-bottom:1px solid var(--line)}
+  .st:last-child{border-bottom:0}
+  .st .rail{position:relative;align-self:stretch;min-height:18px}
+  .st .rail::before{content:"";position:absolute;left:9px;top:-10px;bottom:-10px;width:1px;background:var(--line)}
+  .st:first-child .rail::before{top:9px}
+  .st:last-child .rail::before{bottom:calc(100% - 9px)}
+  .st .rail i{position:absolute;left:4px;top:3px;width:11px;height:11px;border-radius:99px;
+    box-sizing:border-box;border:2px solid var(--line);background:var(--panel)}
+  .st.done .rail i{background:var(--ok);border-color:var(--ok)}
+  .st.active .rail i{background:var(--warn);border-color:var(--warn);animation:pulse 1.6s ease-in-out infinite}
+  .st.failed .rail i{background:var(--bad);border-color:var(--bad)}
+  .st.skipped .rail i{border-style:dashed;background:var(--panel)}
+  .st>div{min-width:0}
+  .st .nm{font-size:13.5px;overflow-wrap:anywhere}
+  .st.active .nm{font-weight:650}
+  .st.done .nm,.st.skipped .nm{color:var(--dim)}
+  .st .mins{padding-top:1px}
+  @keyframes trackGlow{
+    0%,100%{box-shadow:0 0 0 0 var(--glow)}
+    50%{box-shadow:0 0 0 4px transparent}
+  }
+  @keyframes sheen{to{transform:translateX(100%)}}
+  /* у кого выключена анимация в системе — просто статичная подсветка */
+  @media (prefers-reduced-motion:reduce){
+    .row.now .track{animation:none;box-shadow:0 0 0 3px var(--glow)}
+    .fill.active::after{animation:none;background:none}
+  }
+  .note{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 18px;font-size:13px;color:var(--dim)}
+  .note b{color:var(--ink);font-weight:600}
+  .stale{color:var(--warn)}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);
+    font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line)}
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:99px;margin-right:7px;vertical-align:1px}
+  .tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:5px;
+    padding:1px 5px;margin:0 3px 3px 0;color:var(--dim);font-variant-numeric:tabular-nums}
+  ul.debt{margin:0;padding-left:18px}
+  ul.debt li{margin-bottom:4px;font-size:13px}
+  .empty{color:var(--dim);font-size:13px}
+  footer{margin-top:24px;font-size:12px;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap}
+  footer code{overflow-wrap:anywhere}
+  .scroll{overflow-x:auto}
+  /* таблица тасков скроллится внутри своей рамки, а не сминает семь колонок в кашу */
+  .scroll table{min-width:560px}
+  /* узкая раскладка: встроенная панель IDE, боковая колонка, телефон */
+  @media (max-width:460px){
+    body{padding:20px 12px 44px}
+    .top{gap:10px}
+    header{gap:8px;margin-bottom:16px}
+    h1{font-size:15px}
+    h2{margin:20px 0 10px}
+    .card,.overall,.tl,.note{padding:13px 14px}
+    .stages{padding:2px 14px}
+    .v{font-size:25px}
+    .overall-head b{font-size:21px}
+    .ring{flex:0 0 68px;width:68px;height:68px}
+    .hero{gap:12px}
+    .row{grid-template-columns:24px 1fr 48px;gap:8px}
+    .st{grid-template-columns:18px 1fr auto;gap:9px}
+    .badges{margin-left:0}
+    .segs{margin-left:0}
+    /* семь колонок в узкую панель не влезают ни при каком min-width, поэтому здесь
+       таблица перестаёт требовать ширину, а второстепенные колонки уходят:
+       требования, повторы и коммит есть в файлах, а «что и сколько идёт» — нет */
+    .scroll table{min-width:0}
+    th:nth-child(3),td:nth-child(3),
+    th:nth-child(5),td:nth-child(5),
+    th:nth-child(7),td:nth-child(7){display:none}
+    /* переносится только название таска: заголовки и числа рвать по буквам нельзя */
+    th,td{padding:9px 8px;white-space:nowrap}
+    td:nth-child(2){white-space:normal;overflow-wrap:anywhere}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<!-- Состояние живёт отдельным файлом и в страницу не вшивается: так его пишут
+     в одном месте, а не в двух, и подгружают заново, не перезагружая страницу.
+     Отсутствующий файл — не поломка: страница объяснит и дождётся его сама. -->
+<script src="state.js"></script>
+
+<script>
+const MODE_CLS  = {manual:'b-mode-1', interview:'b-mode-2', semi:'b-mode-3', full:'b-mode-4'};
+const DEPTH_CLS = {strict:'b-depth-1', normal:'b-depth-2', deep:'b-depth-3'};
+const TIER_CLS  = {T0:'b-tier-0', T1:'b-tier-1', T2:'b-tier-2', T3:'b-tier-3'};
+
+// Полный цикл сборки. state.js может прислать меньше — недостающие показываем как pending.
+const STAGE_IDS = ['preflight','manifest','briefing','spec','plan','build','review','final'];
+
+const POLL_MS = 10000;
+
+const SUN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>';
+const SYNC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>';
+
+const systemDark = () => {
+  try { return matchMedia('(prefers-color-scheme: dark)').matches; } catch(e) { return false; }
+};
+const storedTheme = () => {
+  try { return localStorage.getItem('prd-theme'); } catch(e) { return null; }
+};
+// Явный выбор пользователя перевешивает системную тему; до первого клика — системная.
+function effectiveTheme(){
+  return storedTheme() || (systemDark() ? 'dark' : 'light');
+}
+function applyTheme(t){
+  if (t) document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+}
+
+
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+
+const I18N = {
+  ru:{lang:"ru",coverage:"Покрытие брифа",ofReq:(a,b)=>`${a} из ${b} требований`,
+    overall:"Прогресс проекта",overallStages:(a,b)=>`${a} из ${b} этапов пройдено`,
+    overallTickets:(a,b)=>`${a} из ${b} задач`,
+    tickets:"Задачи",ticketsDone:p=>`${p}% готово`,retries:n=>` · ${n} повтор.`,
+    elapsed:"Прошло времени",median:m=>`медиана на задачу — ${m} мин`,tooEarly:"рано считать",
+    left:"Осталось (оценка)",needTwo:"нужно 2+ готовых задачи",
+    critpath:n=>`критический путь: ${n} ${plural(n,'задача','задачи','задач')} в цепочке`,
+    stagesTitle:"Этапы",stage:"Этап сейчас",stageOf:(a,b)=>`${a} из ${b} этапов`,
+    stages:{preflight:"Подготовка",manifest:"Требования",briefing:"Брифинг",spec:"PRD и спеки",
+      plan:"План задач",build:"Разработка",review:"Код-ревью",final:"Приёмка"},
+    skipped:"пропущен",notStarted:"не начат",allDone:"всё пройдено",
+    noTicketsTier:"без разбивки",notCut:"задачи ещё не нарезаны",
+    t0note:(n)=>`Ярус T0 — сделано за один заход, без разбивки на задачи.${n?' '+n:''}`,
+    t0files:n=>`Файлов: ${n}.`,noEta:"ярус T0 — оценка не нужна",wrapUp:"задачи готовы, идёт приёмка",
+    auto:"Автообновление",autoOn:"Автообновление включено",autoOff:"Автообновление выключено",
+    agoSec:s=>`${s} сек назад`,agoMin:m=>`${m} мин назад`,agoHr:(h,m)=>`${h} ч ${m} мин назад`,
+    debt:"Долг",debtSub:(a,b,c)=>`заглушки ${a} · допущения ${b} · переменные ${c}`,
+    tests:"Тесты",testsSub:"после последней задачи",testsSubOne:"последний полный прогон",failed:n=>`${n} упало`,
+    buildTook:d=>`разработка заняла ${d}`,
+    reqs:"Требования",reqsSub:(d,f,p)=>`снято ${d} · отложено ${f} · заглушки ${p}`,
+    progress:"Ход сборки",
+    wave:(n,c)=>c>1?`Волна ${n} — ${c} ${plural(c,'задача','задачи','задач')} параллельно`:`Волна ${n}`,
+    chipDone:n=>`готово ${n}`,chipRun:n=>`пишутся ${n}`,chipWait:n=>`ждут ${n}`,chipFailed:n=>`упало ${n}`,
+    chipReview:n=>`на ревью ${n}`,chipRepair:n=>`в ремонте ${n}`,
+    phase:{'in-progress':"пишется",review:"ревью",repair:"ремонт"},
+    nowLbl:"Сейчас:",nowIdle:"Ни одна задача не запущена.",
+    noTickets:"Задач пока нет — идёт подготовка.",
+    tblTickets:"Задачи",thN:"#",thTitle:"Задача",thReq:"Требования",thTime:"Время",thRetry:"Повт.",
+    thTests:"Тесты",thCommit:"Коммит",tblEmpty:"пока пусто",
+    toClose:"Что осталось закрыть",placeholders:"Заглушки — нужны твои данные",
+    assumptions:"Решения, принятые за тебя",envVars:"Переменные в .env",
+    additions:"Добавлено сверх заказанного",none:"пусто",
+    blind:"Слепая приёмка",blindOk:"Расхождений нет.",blindBad:"Расхождения:",
+    blindV:(m,c)=>`${m} / ${c} требований подтверждено`,
+    updated:"Обновлено",filesIn:"Требования и задачи — в",
+    modes:{full:"полный автомат",semi:"полуавтомат",interview:"интервью",manual:"ручной"},
+    depths:{strict:"строго по брифу",normal:"обычная глубина",deep:"максимальная глубина"},
+    tier:t=>`ярус ${t}`,finished:"завершено",min:"мин",hr:"ч",m:"м",
+    langLabel:"Язык",themeLabel:"Тема",themeLight:"Светлая тема",themeDark:"Тёмная тема"},
+  en:{lang:"en",coverage:"Brief coverage",ofReq:(a,b)=>`${a} of ${b} requirements`,
+    overall:"Project progress",overallStages:(a,b)=>`${a} of ${b} stages done`,
+    overallTickets:(a,b)=>`${a} of ${b} tasks`,
+    tickets:"Tasks",ticketsDone:p=>`${p}% done`,retries:n=>` · ${n} retries`,
+    elapsed:"Elapsed",median:m=>`median per task — ${m} min`,tooEarly:"too early to tell",
+    left:"Remaining (estimate)",critpath:n=>`critical path: ${n} tasks deep`,needTwo:"needs 2+ finished tasks",
+    stagesTitle:"Stages",stage:"Current stage",stageOf:(a,b)=>`${a} of ${b} stages`,
+    stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"PRD & specs",
+      plan:"Task plan",build:"Development",review:"Code review",final:"Acceptance"},
+    skipped:"skipped",notStarted:"not started",allDone:"all passed",
+    noTicketsTier:"no split",notCut:"tasks not cut yet",
+    t0note:(n)=>`Tier T0 — done in a single pass, no tasks.${n?' '+n:''}`,
+    t0files:n=>`Files: ${n}.`,noEta:"tier T0 — no estimate needed",wrapUp:"tasks done, acceptance running",
+    auto:"Auto-refresh",autoOn:"Auto-refresh on",autoOff:"Auto-refresh off",
+    agoSec:s=>`${s}s ago`,agoMin:m=>`${m} min ago`,agoHr:(h,m)=>`${h}h ${m}m ago`,
+    debt:"Debt",debtSub:(a,b,c)=>`placeholders ${a} · assumptions ${b} · env vars ${c}`,
+    tests:"Tests",testsSub:"after the last task",testsSubOne:"last full run",failed:n=>`${n} failed`,
+    buildTook:d=>`development took ${d}`,
+    reqs:"Requirements",reqsSub:(d,f,p)=>`dropped ${d} · deferred ${f} · placeholders ${p}`,
+    progress:"Build progress",
+    wave:(n,c)=>c>1?`Wave ${n} — ${c} tasks in parallel`:`Wave ${n}`,
+    chipDone:n=>`${n} done`,chipRun:n=>`${n} writing`,chipWait:n=>`${n} waiting`,chipFailed:n=>`${n} failed`,
+    chipReview:n=>`${n} in review`,chipRepair:n=>`${n} in repair`,
+    phase:{'in-progress':"writing",review:"review",repair:"repair"},
+    nowLbl:"Now:",nowIdle:"No task is running.",
+    noTickets:"No tasks yet — still preparing.",
+    tblTickets:"Tasks",thN:"#",thTitle:"Task",thReq:"Requirements",thTime:"Time",thRetry:"Retry",
+    thTests:"Tests",thCommit:"Commit",tblEmpty:"empty so far",
+    toClose:"Still to close",placeholders:"Placeholders — your data needed",
+    assumptions:"Decisions made for you",envVars:"Variables in .env",
+    additions:"Added beyond the brief",none:"none",
+    blind:"Blind acceptance",blindOk:"No disagreements.",blindBad:"Disagreements:",
+    blindV:(m,c)=>`${m} / ${c} requirements confirmed`,
+    updated:"Updated",filesIn:"Requirements and tasks in",
+    modes:{full:"fully automatic",semi:"semi-automatic",interview:"interview",manual:"manual"},
+    depths:{strict:"strictly as written",normal:"normal depth",deep:"maximum depth"},
+    tier:t=>`tier ${t}`,finished:"finished",min:"min",hr:"h",m:"m",
+    langLabel:"Language",themeLabel:"Theme",themeLight:"Light theme",themeDark:"Dark theme"}
+};
+
+let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
+let autoOn = true;
+try { autoOn = (localStorage.getItem('prd-auto') || 'on') !== 'off'; } catch(e) {}
+let pollT = null;
+let lastStamp = null;              // метка отрисованного состояния — против лишних перерисовок
+
+// ——— живые таймеры ———————————————————————————————————————————————
+// Всё время считается из меток state.js. Незакрытый интервал тикает от текущего момента.
+const spanMs = (from, to) => {
+  const a = from ? new Date(from).getTime() : NaN;
+  if (isNaN(a)) return null;
+  const b = to ? new Date(to).getTime() : Date.now();
+  return Math.max(0, b - a);
+};
+const fmtClock = ms => {
+  if (ms == null) return '—';
+  const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
+  const p = n => String(n).padStart(2,'0');
+  return h ? `${h}:${p(m)}:${p(ss)}` : `${m}:${p(ss)}`;
+};
+// Открытый интервал получает data-live — его каждую секунду обновляет tick().
+function timerHTML(from, to){
+  const ms = spanMs(from, to);
+  if (ms == null) return '—';
+  return to ? `<span>${fmtClock(ms)}</span>`
+            : `<span data-live data-from="${from}">${fmtClock(ms)}</span>`;
+}
+function agoText(iso){
+  const ms = spanMs(iso, null);
+  if (ms == null) return '—';
+  const s = Math.floor(ms/1000);
+  if (s < 60) return CUR.agoSec(s);
+  const m = Math.floor(s/60);
+  return m < 60 ? CUR.agoMin(m) : CUR.agoHr(Math.floor(m/60), m%60);
+}
+function tick(){
+  document.querySelectorAll('[data-live][data-from]').forEach(el => {
+    el.textContent = fmtClock(spanMs(el.dataset.from, null));
+  });
+  document.querySelectorAll('[data-ago]').forEach(el => {
+    el.textContent = agoText(el.dataset.ago);
+    // Молчание — повод присмотреться, но только когда никто не работает.
+    // Пока хотя бы один таск идёт, записей внутри него нет по устройству
+    // процесса: оркестратор пишет на границах, а таск живёт десятки минут.
+    // Порог тогда — не пять минут, а заметно дольше самого долгого таска.
+    const S = window.STATE || {};
+    const busy = (S.tickets || []).some(t =>
+      t.status === 'in-progress' || t.status === 'review' || t.status === 'repair');
+    el.classList.toggle('stale', !S.finishedAt
+      && spanMs(el.dataset.ago, null) > (busy ? 2700000 : 300000));
+  });
+}
+
+// ——— автообновление ——————————————————————————————————————————————
+// Страница не перезагружается: она подтягивает state.js заново отдельным тегом.
+// Так сделано потому, что встроенные панели (Claude Desktop, IDE-вьюверы) глушат
+// навигацию — и location.reload(), и <meta http-equiv="refresh"> там молча ничего
+// не делают, а вот загрузку подресурсов панель не трогает. Проверено измерением:
+// reload и meta refresh не сработали ни разу, подгрузка тега — двенадцать раз из
+// двенадцати. Побочная выгода — «обновить» больше не значит «потерять место на
+// странице», выделение и позицию прокрутки перерисовка сохраняет.
+// Но подресурсы живут только у страницы, у которой есть адрес. Панель Claude не
+// открывает file:// как страницу — она вклеивает HTML в data:text/html, а оттуда
+// origin равен null: state.js не грузится ни относительным путём, ни абсолютным
+// file://, ни через fetch. Поэтому в панель дашборд отдают по http с локального
+// статического сервера (phases/0-instruments.md); двойной клик в настоящем
+// браузере остаётся вторым, равноправным способом.
+// Видимость НЕ проверяем: те же панели держат document.hidden === true всё время,
+// хотя пользователь смотрит именно туда.
+const stampOf = S => (S.updatedAt || '') + '|' + (S.finishedAt || '') + '|' + (S.tickets || []).length;
+
+function applyState(){
+  const S = window.STATE;
+  if (!S || typeof S !== 'object') return;
+  // Перерисовываем только когда состояние действительно сдвинулось: молчаливая
+  // перерисовка раз в десять секунд сбрасывала бы выделенный текст ни за что.
+  const stamp = stampOf(S);
+  if (stamp === lastStamp) return;
+  lastStamp = stamp;
+  const y = window.scrollY;
+  // Упавший рендер не должен убивать страницу: сбрасываем штамп, чтобы следующий
+  // круг опроса попробовал заново — иначе исправленный state.js уже не подберётся.
+  try { render(CUR.lang); } catch (e) { lastStamp = ''; bootFail(String(e && e.message || e)); }
+  window.scrollTo(0, y);
+}
+
+function pollState(){
+  clearTimeout(pollT);
+  if (!autoOn || (window.STATE && window.STATE.finishedAt)) return;
+  pollT = setTimeout(() => {
+    const s = document.createElement('script');
+    // Метка времени в запросе — иначе file:// отдаст скрипт из кеша.
+    s.src = 'state.js?t=' + Date.now();
+    // Ошибка — обычное дело: файл могли поймать в момент записи. Старое состояние
+    // остаётся на экране, следующий круг через десять секунд подберёт целое.
+    const next = () => { s.remove(); applyState(); pollState(); };
+    s.onload = next;
+    s.onerror = next;
+    document.head.appendChild(s);
+  }, POLL_MS);
+}
+
+function render(lang){
+  const L = I18N[lang] || I18N.ru;
+  CUR = L;
+  const S = STATE, T = S.tickets || [], R = S.requirements || {};
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // Таск живёт в трёх активных состояниях, а не в одном: пишется — проверяется —
+  // чинится. Ревью и ремонт идут, пока летит следующий таск, поэтому «готово 2 из 8»
+  // без них — самый частый вопрос к экрану: «а с третьим-то что».
+  const ACTIVE = ['in-progress', 'review', 'repair'];
+  const done = T.filter(t => t.status === 'done');
+  const writing = T.filter(t => t.status === 'in-progress');
+  const inReview = T.filter(t => t.status === 'review');
+  const inRepair = T.filter(t => t.status === 'repair');
+  const running = T.filter(t => ACTIVE.includes(t.status));
+  const failedT = T.filter(t => t.status === 'failed');
+  const waiting = T.length - done.length - running.length - failedT.length;
+  const live = Math.max(0, (R.total || 0) - (R.dropped || 0));
+
+  const mins = t => (t.startedAt && t.finishedAt)
+    ? Math.max(1, Math.round((new Date(t.finishedAt) - new Date(t.startedAt)) / 60000)) : null;
+  const durations = done.map(mins).filter(Boolean).sort((a,b) => a-b);
+  const median = durations.length ? durations[Math.floor(durations.length/2)] : null;
+  const fmtDur = m => m == null ? '—'
+    : m < 60 ? m + ' ' + L.min : Math.floor(m/60) + ' ' + L.hr + ' ' + String(m%60).padStart(2,'0') + ' ' + L.min;
+
+  const byId = Object.fromEntries(T.map(t => [t.id, t]));
+  const memo = {};
+  function depth(id, seen){
+    const t = byId[id];
+    if (!t || t.status === 'done') return 0;
+    if (memo[id] != null) return memo[id];
+    if (seen.has(id)) return 1;
+    seen.add(id);
+    const d = 1 + Math.max(0, ...(t.blockedBy || []).map(b => depth(b, seen)));
+    seen.delete(id);
+    return memo[id] = d;
+  }
+  const cp = Math.max(0, ...T.map(t => depth(t.id, new Set())));
+
+  // Оценка считается в минутах по цепочке, а не «медиана × длина цепочки»: иначе
+  // таск, который идёт двадцать седьмую минуту, стоит в оценке как не начатый,
+  // и на последнем почти доделанном таске экран пишет «21 … 39 мин».
+  const memoMin = {};
+  const leftFor = t => {
+    if (!t || t.status === 'done') return 0;
+    const full = median || 10;
+    // код написан — осталась проверка и, может быть, правка по находке
+    if (t.status === 'review') return full * 0.2;
+    if (t.status === 'repair') return full * 0.5;
+    if (t.status === 'in-progress' && t.startedAt) {
+      const elapsed = (spanMs(t.startedAt, null) || 0) / 60000;
+      return Math.max(1, full - elapsed);          // уже идёт — осталось меньше
+    }
+    return full;
+  };
+  function chainMin(id, seen){
+    const t = byId[id];
+    if (!t || t.status === 'done') return 0;
+    if (memoMin[id] != null) return memoMin[id];
+    if (seen.has(id)) return leftFor(t);
+    seen.add(id);
+    const d = leftFor(t) + Math.max(0, ...(t.blockedBy || []).map(b => chainMin(b, seen)));
+    seen.delete(id);
+    return memoMin[id] = d;
+  }
+  const cpMin = Math.max(0, ...T.map(t => chainMin(t.id, new Set())));
+  const eta = (median && cpMin > 0)
+    ? [Math.max(1, Math.round(cpMin*0.75)), Math.max(2, Math.round(cpMin*1.4))] : null;
+
+  // Этапы: канонический порядок, поверх него — то, что прислал state.js.
+  const given = Array.isArray(S.stages) ? S.stages.filter(Boolean) : [];
+  const stages = STAGE_IDS.map(id => given.find(s => s.id === id) || {id, status:'pending'})
+    .concat(given.filter(s => !STAGE_IDS.includes(s.id)));
+  const stName = s => L.stages[s.id] || s.id;
+  const activeStage = stages.find(s => s.status === 'active');
+  const curStage = activeStage || stages.find(s => s.status !== 'done' && s.status !== 'skipped');
+  const stageNo = curStage ? stages.indexOf(curStage) + 1 : stages.length;
+  const t0 = String(S.tier).toUpperCase() === 'T0';
+  const buildStage = stages.find(s => s.id === 'build');
+  const buildMs = buildStage && buildStage.startedAt && buildStage.finishedAt
+    ? spanMs(buildStage.startedAt, buildStage.finishedAt) : null;
+
+  // Прогресс проекта целиком. Веса — это доли времени, а не «этап = 1/8»: разработка идёт
+  // часами, подготовка минуты. Внутри разработки шкала дробится по готовым таскам, поэтому
+  // она ползёт с каждым таском, а не стоит на месте полдня и потом прыгает.
+  const STAGE_WEIGHT = {preflight:1, manifest:1, briefing:1, spec:2, plan:1, build:6, review:2, final:1};
+  const stageFrac = s => {
+    if (s.status === 'done' || s.status === 'skipped') return 1;
+    if (s.status !== 'active') return 0;                      // pending и failed — ноль
+    if (s.id === 'build' && T.length) return Math.max(0.05, done.length / T.length);
+    return 0.5;
+  };
+  const totalW = stages.reduce((a,s) => a + (STAGE_WEIGHT[s.id] ?? 1), 0);
+  const overallPct = totalW
+    ? Math.round(stages.reduce((a,s) => a + (STAGE_WEIGHT[s.id] ?? 1) * stageFrac(s), 0) / totalW * 100) : 0;
+  const stagesDone = stages.filter(s => s.status === 'done' || s.status === 'skipped').length;
+
+  const coverage = live ? Math.round((R.done||0)/live*100) : 0;
+  // Таск на ревью уже написан. Считать его нулём — врать в меньшую сторону ровно
+  // там, где до разделения статусов врали в большую, помечая код готовым до проверки.
+  const ticketPct = T.length
+    ? Math.round((done.length + 0.75*(inReview.length + inRepair.length))/T.length*100) : 0;
+  const retries = T.reduce((s,t) => s + (t.retries||0), 0);
+  const last = done[done.length-1];
+  // Полный прогон, если он записан; иначе — тесты последнего захода: таска или T0-сборки.
+  const tests = S.tests || (last && last.tests) || (S.singlePass && S.singlePass.tests) || null;
+  const debtN = (S.debt?.placeholders?.length||0) + (S.debt?.assumptions?.length||0) + (S.debt?.emptyEnv?.length||0);
+
+  const ring = pct => {
+    const r = 34, c = 2*Math.PI*r;
+    return `<svg class="ring" viewBox="0 0 80 80" width="84" height="84" aria-hidden="true">
+      <circle cx="40" cy="40" r="${r}" fill="none" stroke="var(--ghost)" stroke-width="9"/>
+      <circle cx="40" cy="40" r="${r}" fill="none" stroke="var(--accent)" stroke-width="9"
+        stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct/100)}"
+        transform="rotate(-90 40 40)"/></svg>`;
+  };
+  const statusColor = s => s === 'done' ? 'var(--ok)' : s === 'failed' ? 'var(--bad)'
+    : s === 'review' ? 'var(--info)'
+    : (s === 'in-progress' || s === 'repair') ? 'var(--warn)' : 'var(--line)';
+
+  const waves = [...new Set(T.map(t => t.wave ?? 1))].sort((a,b) => a-b);
+  // Полоса показывает СОСТОЯНИЕ, а не долю. Раньше её ширина была длительностью
+  // относительно самого долгого таска — и готовый таск на 19 из 28 минут выглядел
+  // «сделанным на 68%». Горизонтальная заливка в списке задач читается как прогресс
+  // всегда, поэтому: готов — целиком, идёт — целиком со светом и бликом, ждёт —
+  // пустой пунктир. Длительность живёт цифрой справа, где её и читают.
+  const timeline = T.length ? waves.map(w => {
+    const inWave = T.filter(t => (t.wave ?? 1) === w)
+      .sort((a,b) => String(a.id).localeCompare(String(b.id), undefined, {numeric:true}));
+    const rows = inWave.map(t => {
+      const active = ACTIVE.includes(t.status), pend = t.status === 'pending';
+      // у не начатого таска часов нет: «0:00» читается как «идёт и стоит на месте»
+      const clock = (t.startedAt && !pend) ? timerHTML(t.startedAt, t.finishedAt) : '—';
+      // «пишется» — базовый случай и читается по цвету; подписываем то, чего
+      // на этом экране раньше не было, иначе ремонт неотличим от разработки
+      const ph = (t.status === 'review' || t.status === 'repair') ? (L.phase||{})[t.status] : '';
+      return `<div class="row${active?' now':''}${pend?' wait':''}"><b>${esc(t.id)}</b>
+        <div class="track"><div class="fill${pend?' pend':''}${active?' active':''}"
+          style="width:100%${pend?'':';background:'+statusColor(t.status)}"><span class="nm">${
+          esc(t.title)}</span>${ph ? `<em class="ph">${esc(ph)}</em>` : ''}</div></div>
+        <div class="mins">${clock}</div></div>`;
+    }).join('');
+    return `<div class="wave">${L.wave(w, inWave.length)}</div>${rows}`;
+  }).join('') : `<div class="empty">${L.noTickets}</div>`;
+
+  // Ревью и ремонт показываем, только когда они есть: шесть чипов в ряд на пятитасковом
+  // прогоне читаются хуже, чем четыре, а нули не несут ничего.
+  const tlSum = T.length ? `<div class="tlsum">
+      <span class="chip ok">${L.chipDone(done.length)}</span>
+      <span class="chip run">${L.chipRun(writing.length)}</span>
+      ${inReview.length ? `<span class="chip info">${L.chipReview(inReview.length)}</span>` : ''}
+      ${inRepair.length ? `<span class="chip run">${L.chipRepair(inRepair.length)}</span>` : ''}
+      <span class="chip">${L.chipWait(Math.max(0, waiting))}</span>
+      ${failedT.length ? `<span class="chip bad">${L.chipFailed(failedT.length)}</span>` : ''}
+    </div>` : '';
+  const tlNow = !T.length ? '' : running.length
+    ? `<div class="tlnow"><span class="lbl">${L.nowLbl}</span> ` + running.map(t =>
+        `<b>${esc(t.id)}</b> ${esc(t.title)} <span class="lbl">— ${
+          esc((L.phase||{})[t.status] || '')}</span> <span class="nowclock">${
+          t.startedAt ? timerHTML(t.startedAt, null) : '—'}</span>`).join(' · ') + '</div>'
+    : (S.finishedAt || done.length === T.length ? '' : `<div class="tlnow lbl">${L.nowIdle}</div>`);
+
+  // Лента этапов — она же ответ на «где мы сейчас», когда тасков нет вовсе.
+  const stageRows = stages.map(s => {
+    const dur = s.status === 'skipped' ? L.skipped
+      : s.startedAt ? timerHTML(s.startedAt, s.finishedAt)
+      : `<span class="empty">${L.notStarted}</span>`;
+    return `<div class="st ${esc(s.status || 'pending')}">
+      <div class="rail"><i></i></div>
+      <div><div class="nm">${esc(stName(s))}</div>${s.note ? `<div class="sub">${esc(s.note)}</div>` : ''}</div>
+      <div class="mins">${dur}</div></div>`;
+  }).join('');
+
+  const list = arr => arr && arr.length
+    ? '<ul class="debt">' + arr.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>'
+    : `<div class="empty">${L.none}</div>`;
+
+  const rows = T.map(t => `<tr>
+    <td><b>${esc(t.id)}</b></td>
+    <td><span class="dot" style="background:${statusColor(t.status)}"></span>${esc(t.title)}
+      ${t.concerns?.length ? `<div class="sub">${esc(t.concerns.join('; '))}</div>` : ''}</td>
+    <td>${(t.requirements||[]).map(r => `<span class="tag">${esc(r)}</span>`).join('') || '<span class="empty">—</span>'}</td>
+    <td class="mins">${t.startedAt ? timerHTML(t.startedAt, t.finishedAt) : '—'}</td>
+    <td class="mins">${t.retries ? t.retries : ''}${
+      t.repairs ? `<span style="color:var(--info)"> +${t.repairs}</span>` : ''}</td>
+    <td class="mins">${t.tests ? (t.tests.failed ? `<span style="color:var(--bad)">${t.tests.failed} ✗</span>` : t.tests.passed + ' ✓') : '—'}</td>
+    <td class="mins">${t.commit ? `<code>${esc(t.commit).slice(0,7)}</code>` : '—'}</td>
+  </tr>`).join('');
+
+  // Ярус T0: тасков нет по замыслу — вместо пустой таблицы показываем сам заход.
+  const sp = S.singlePass || null;
+  const t0block = `<div class="note"><b>${L.t0note(sp?.files?.length ? L.t0files(sp.files.length) : '')}</b>
+    <div class="sub" style="margin-top:6px">
+      ${sp?.startedAt ? `${L.thTime}: ${timerHTML(sp.startedAt, sp.finishedAt)} · ` : ''}
+      ${sp?.tests ? `${L.thTests}: ${sp.tests.failed ? `<span style="color:var(--bad)">${sp.tests.failed} ✗</span>` : sp.tests.passed + ' ✓'} · ` : ''}
+      ${sp?.commit ? `${L.thCommit}: <code>${esc(sp.commit).slice(0,7)}</code>` : ''}
+    </div></div>`;
+  const worklog = T.length
+    ? `<h2>${L.progress}</h2><div class="tl">${tlSum}${tlNow}${timeline}</div>
+       <h2>${L.tblTickets}</h2>
+       <div class="scroll"><table>
+         <thead><tr><th>${L.thN}</th><th>${L.thTitle}</th><th>${L.thReq}</th><th>${L.thTime}</th>
+           <th>${L.thRetry}</th><th>${L.thTests}</th><th>${L.thCommit}</th></tr></thead>
+         <tbody>${rows}</tbody>
+       </table></div>`
+    : (t0 || sp) ? `<h2>${L.stages.build}</h2>${t0block}` : '';
+
+  const blind = S.blind ? `<h2>${L.blind}</h2><div class="card">
+      <div class="v">${L.blindV(esc(S.blind.matched), esc(S.blind.checked))}</div>
+      ${S.blind.mismatches?.length ? `<div class="sub">${L.blindBad}</div>${list(S.blind.mismatches)}`
+        : `<div class="sub">${L.blindOk}</div>`}</div>` : '';
+
+  document.documentElement.lang = L.lang;
+  document.getElementById('app').innerHTML = `
+  <div class="top">
+    <div class="logo">prd<b>.</b></div>
+    <div class="segs">
+      ${S.finishedAt ? '' : `<div class="seg" role="group" aria-label="${L.auto}">
+        <button type="button" data-auto title="${autoOn ? L.autoOn : L.autoOff}"
+          aria-label="${L.auto}" aria-pressed="${autoOn}">${SYNC}</button>
+      </div>`}
+      <div class="seg" role="group" aria-label="${L.themeLabel}">
+        <button type="button" data-theme="light" title="${L.themeLight}" aria-label="${L.themeLight}"
+          aria-pressed="${effectiveTheme()==='light'}">${SUN}</button>
+        <button type="button" data-theme="dark" title="${L.themeDark}" aria-label="${L.themeDark}"
+          aria-pressed="${effectiveTheme()==='dark'}">${MOON}</button>
+      </div>
+      <div class="seg" role="group" aria-label="${L.langLabel}">
+        <button type="button" data-lang="ru" aria-pressed="${L.lang==='ru'}">RU</button>
+        <button type="button" data-lang="en" aria-pressed="${L.lang==='en'}">EN</button>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <h1>${esc(S.title)}</h1>
+    <div class="badges">
+      <span class="badge ${MODE_CLS[S.mode]||''}">${esc(L.modes[S.mode] || S.mode)}</span>
+      <span class="badge ${DEPTH_CLS[S.depth]||''}">${esc(L.depths[S.depth] || S.depth || '')}</span>
+      <span class="badge ${TIER_CLS[String(S.tier).toUpperCase()]||''}">${L.tier(esc(S.tier))}</span>
+      ${S.finishedAt ? `<span class="badge b-done">${L.finished}</span>` : ''}
+    </div>
+  </header>
+
+  <div class="overall">
+    <div class="overall-head"><span>${L.overall}</span><b>${overallPct}<small>%</small></b></div>
+    <div class="bar lg"><i style="width:${overallPct}%"></i></div>
+    <div class="sub">${L.overallStages(stagesDone, stages.length)}${
+      T.length ? ' · ' + L.overallTickets(done.length, T.length) : ''}</div>
+  </div>
+
+  <div class="grid m">
+    <div class="card"><div class="k">${L.coverage}</div>
+      <div class="hero">${ring(coverage)}
+        <div><div class="v">${coverage}<small>%</small></div>
+        <div class="sub">${L.ofReq(R.done||0, live)}</div></div></div>
+    </div>
+    <div class="card"><div class="k">${L.stage}</div>
+      <div class="v stage">${esc(curStage ? stName(curStage) : L.allDone)}</div>
+      <div class="sub">${L.stageOf(stageNo, stages.length)}${
+        activeStage?.startedAt ? ' · ' + timerHTML(activeStage.startedAt, null) : ''}</div>
+    </div>
+    <div class="card"><div class="k">${L.elapsed}</div>
+      <div class="v">${S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : '—'}</div>
+      <div class="sub">${median ? L.median(median) : (buildMs != null ? L.buildTook(fmtClock(buildMs)) : L.tooEarly)}</div>
+    </div>
+    <div class="card"><div class="k">${L.left}</div>
+      <div class="v">${eta ? fmtDur(eta[0]) : '—'}${eta ? `<small> … ${fmtDur(eta[1])}</small>` : ''}</div>
+      <div class="sub">${eta ? L.critpath(cp)
+        : (t0 ? L.noEta : (T.length && done.length === T.length ? L.wrapUp : L.needTwo))}</div>
+    </div>
+  </div>
+
+  <div class="grid m">
+    <div class="card"><div class="k">${L.tickets}</div>
+      <div class="v">${T.length ? `${done.length}<small> / ${T.length}</small>`
+        : t0 ? `<span style="font-size:22px">${L.noTicketsTier}</span>` : '—'}</div>
+      ${T.length ? `<div class="bar"><i style="width:${ticketPct}%"></i></div>
+      <div class="sub">${L.ticketsDone(ticketPct)}${writing.length ? ' · ' + L.chipRun(writing.length) : ''}${
+        inReview.length ? ' · ' + L.chipReview(inReview.length) : ''}${
+        inRepair.length ? ' · ' + L.chipRepair(inRepair.length) : ''}${
+        retries ? L.retries(retries) : ''}</div>`
+        : `<div class="sub">${t0 ? L.tier(esc(S.tier)) : L.notCut}</div>`}
+    </div>
+    <div class="card"><div class="k">${L.debt}</div>
+      <div class="v">${debtN}</div>
+      <div class="sub">${L.debtSub(S.debt?.placeholders?.length||0, S.debt?.assumptions?.length||0, S.debt?.emptyEnv?.length||0)}</div>
+    </div>
+    <div class="card"><div class="k">${L.tests}</div>
+      <div class="v">${tests ? tests.passed : '—'}${tests && tests.failed ? `<small style="color:var(--bad)"> · ${L.failed(tests.failed)}</small>` : ''}</div>
+      <div class="sub">${T.length ? L.testsSub : L.testsSubOne}</div>
+    </div>
+    <div class="card"><div class="k">${L.reqs}</div>
+      <div class="v">${R.total||0}</div>
+      <div class="sub">${L.reqsSub(R.dropped||0, R.deferred||0, R.placeholder||0)}</div>
+    </div>
+  </div>
+
+  <h2>${L.stagesTitle}</h2>
+  <div class="stages">${stageRows}</div>
+
+  ${worklog}
+
+  <h2>${L.toClose}</h2>
+  <div class="grid">
+    <div class="card"><div class="k">${L.placeholders}</div>${list(S.debt?.placeholders)}</div>
+    <div class="card"><div class="k">${L.assumptions}</div>${list(S.debt?.assumptions)}</div>
+    <div class="card"><div class="k">${L.envVars}</div>${list(S.debt?.emptyEnv)}</div>
+    ${S.additions?.length ? `<div class="card"><div class="k">${L.additions}</div>${list(S.additions)}</div>` : ''}
+  </div>
+
+  ${blind}
+
+  <footer>
+    <span>${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
+      title="${S.updatedAt ? esc(new Date(S.updatedAt).toLocaleString(L.lang==='en'?'en-GB':'ru-RU')) : ''}"
+      >${S.updatedAt ? agoText(S.updatedAt) : '—'}</span></span>
+    <span>${L.filesIn} <code>${esc(S.docsPath || S.slug || "")}</code></span>
+  </footer>`;
+
+  document.querySelectorAll('.seg button[data-lang]').forEach(b =>
+    b.addEventListener('click', () => {
+      try { localStorage.setItem('prd-lang', b.dataset.lang); } catch(e) {}
+      render(b.dataset.lang);
+    }));
+
+  document.querySelectorAll('.seg button[data-theme]').forEach(b =>
+    b.addEventListener('click', () => {
+      const t = b.dataset.theme;
+      try { localStorage.setItem('prd-theme', t); } catch(e) {}
+      applyTheme(t);
+      document.querySelectorAll('.seg button[data-theme]').forEach(x =>
+        x.setAttribute('aria-pressed', String(x.dataset.theme === t)));
+    }));
+
+  document.querySelectorAll('.seg button[data-auto]').forEach(b =>
+    b.addEventListener('click', () => {
+      autoOn = !autoOn;
+      try { localStorage.setItem('prd-auto', autoOn ? 'on' : 'off'); } catch(e) {}
+      b.setAttribute('aria-pressed', String(autoOn));
+      b.title = autoOn ? L.autoOn : L.autoOff;
+      pollState();
+    }));
+
+  tick();
+  pollState();
+}
+
+let savedLang = 'ru';
+try { savedLang = localStorage.getItem('prd-lang')
+  || ((navigator.language || '').startsWith('ru') ? 'ru' : 'en'); } catch(e) {}
+
+applyTheme(storedTheme());
+
+// Состояние приходит из state.js рядом. Пустой экран не говорит, что сломалось,
+// поэтому страница объясняет — и, в отличие от прежней версии, не сдаётся:
+// опрос продолжается, и когда файл появится, дашборд оживёт сам.
+function bootFail(why){
+  const app = document.getElementById('app');
+  if (!app) return;
+  const ru = (navigator.language || '').startsWith('ru');
+  app.innerHTML = '<div class="card"><div class="k">' +
+    (ru ? 'Дашборд ещё не прочитал состояние' : 'Dashboard has no state yet') +
+    '</div><div class="sub" style="margin-top:10px">' + why + '</div>' +
+    '<div class="sub" style="margin-top:10px">' + (ru
+      ? 'Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.'
+      : 'The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.') +
+    '</div></div>';
+}
+
+if (typeof STATE === 'undefined' || !STATE || typeof STATE !== 'object') {
+  bootFail((navigator.language || '').startsWith('ru')
+    ? 'Файл <code>state.js</code> не загрузился или не разобрался — его ещё не создали, либо в нём не объект <code>window.STATE</code>.'
+    : '<code>state.js</code> did not load or did not parse — it has not been created yet, or it does not assign a <code>window.STATE</code> object.');
+  pollState();
+} else {
+  try {
+    render(I18N[savedLang] ? savedLang : 'ru');
+    lastStamp = stampOf(STATE);
+  } catch (e) {
+    bootFail(String(e && e.message || e));
+    pollState();
+  }
+}
+
+// Секундная стрелка для всех незакрытых интервалов и для «обновлено N назад».
+setInterval(tick, 1000);
+
+// Возврат на вкладку — повод не ждать очередного круга опроса.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); pollState(); } });
+
+// Пока пользователь не выбрал тему явно, дашборд следует за системной.
+try {
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (storedTheme()) return;
+    document.querySelectorAll('.seg button[data-theme]').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.theme === effectiveTheme())));
+  });
+} catch(e) {}
+</script>
+</body>
+</html>
