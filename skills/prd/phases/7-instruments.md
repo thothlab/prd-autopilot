@@ -15,19 +15,19 @@
 ```js
 window.STATE =
 {
-  "slug": "phone-transfer-form",
-  "title": "Перевод по номеру телефона в SDK",
+  "slug": "favorites-list",
+  "title": "Избранное: кнопка и список",
   "prd": "prd_03",
   "mode": "semi",
   "depth": "normal",
   "tier": "T2",
   "storage": "vault",
-  "prdRoot": "/Users/x/Documents/vault/Projects/mobile/transfer-by-phone/PRD",
-  "livingSpecs": "/Users/x/Documents/vault/Projects/mobile/transfer-by-phone/specs",
-  "docsPath": "Projects/mobile/transfer-by-phone/PRD/",
+  "prdRoot": "/Users/x/Documents/vault/Projects/example/favorites/PRD",
+  "livingSpecs": "/Users/x/Documents/vault/Projects/example/favorites/specs",
+  "docsPath": "Projects/example/favorites/PRD/",
   "briefFile": "prd_03_brief.md",
   "memoryFile": "CLAUDE.md",
-  "codeBranch": "codex/prd-03-phone-transfer-form",
+  "codeBranch": "codex/prd-03-favorites-list",
   "skillDir": "/Users/x/.claude/skills/prd",
   "startedAt": "2026-08-17T14:02:06+03:00",
   "updatedAt": "2026-08-17T15:31:43+03:00",
@@ -49,19 +49,19 @@ window.STATE =
   "tickets": [
     {
       "id": "03",
-      "title": "Форма перевода: ввод номера и суммы",
+      "title": "Избранное: кнопка на карточке",
       "requirements": ["R01", "R01.1", "A01"],
       "blockedBy": ["01", "02"],
       "wave": 2,
-      "zone": ["features/transfer/"],
+      "zone": ["features/favorites/"],
       "status": "done",
       "startedAt": "2026-08-17T14:35:31+03:00",
       "finishedAt": "2026-08-17T14:53:26+03:00",
       "retries": 0,
       "repairs": 1,
-      "repairFindings": ["пустой номер проходит валидацию — R01.1"],
+      "repairFindings": ["повторное нажатие добавляет дубль — R01.1"],
       "handoffs": 0,
-      "files": ["features/transfer/ui/TransferForm.kt"],
+      "files": ["features/favorites/ui/FavoritesScreen.kt"],
       "tests": { "passed": 34, "failed": 0 },
       "commit": "a1b2c3d",
       "report": "prd_03_rep_03_transfer-form.md",
@@ -72,12 +72,12 @@ window.STATE =
   "tests": { "passed": 34, "failed": 0 },
   "debt": {
     "placeholders": ["R05 — токены дизайна", "R11 — тексты ошибок бэка"],
-    "assumptions": ["Список получателей из локального кеша — бэк ручку не отдаёт"],
+    "assumptions": ["Список храним локально — ручки у бэка нет"],
     "emptyEnv": ["JIRA_API_TOKEN"]
   },
-  "additions": ["Имя получателя на шаге подтверждения — ради R01"],
+  "additions": ["Счётчик на карточке — ради R01"],
   "coverage": { "found": 2, "fixed": 2, "deferred": 0 },
-  "concerns": ["features/transfer/ui/TransferForm.kt:40 — два формата суммы в одном файле"],
+  "concerns": ["features/favorites/ui/FavoritesScreen.kt:40 — два формата даты в одном файле"],
   "reviewers": { "manifestSpec": "rev-ms-1", "craft": "rev-craft-1" },
   "blind": null,
   "polish": null
@@ -168,7 +168,7 @@ window.STATE =
 "singlePass": {
   "startedAt": "2026-08-17T14:26:43+03:00",
   "finishedAt": "2026-08-17T14:40:06+03:00",
-  "files": ["features/transfer/ui/TransferForm.kt"],
+  "files": ["features/favorites/ui/FavoritesScreen.kt"],
   "tests": { "passed": 6, "failed": 0 },
   "commit": "9f8e7d6"
 }
@@ -180,7 +180,7 @@ window.STATE =
 
 После каждой задачи, в чат: что стало возможно, и счёт.
 
-> Форма перевода принимает номер и сумму — 3 из 8 готово.
+> Кнопка избранного работает на карточке — 3 из 8 готово.
 
 Не: списки файлов, диффы, имена тестов, номера задач. Это всё в приборах, для тех, кому нужно.
 
