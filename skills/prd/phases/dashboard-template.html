@@ -125,6 +125,10 @@ const DICT = {
     tstatus:{pending:"ждёт","in-progress":"пишется",review:"на ревью",repair:"в ремонте",
       done:"готово",failed:"упало"},
     wave:(n,c)=>c>1?`Волна ${n} — ${c} задач параллельно`:`Волна ${n}`,
+    chip:{done:n=>`готово ${n}`,"in-progress":n=>`пишутся ${n}`,review:n=>`на ревью ${n}`,
+      repair:n=>`в ремонте ${n}`,pending:n=>`ждут ${n}`,failed:n=>`упало ${n}`},
+    nowLbl:"Сейчас:", nowIdle:"Ни одна задача не запущена.",
+    g2:(f,x)=>`сверка: найдено ${f}, закрыто ${x}`,
     onePass:"Один заход — ярус T0, без разбивки на задачи",
     noTasks:"Задач пока нет — идёт подготовка.",
     thN:"#", thTitle:"Задача", thReq:"Требования", thState:"Статус", thTime:"Время",
@@ -168,6 +172,10 @@ const DICT = {
     tstatus:{pending:"waiting","in-progress":"writing",review:"in review",repair:"in repair",
       done:"done",failed:"failed"},
     wave:(n,c)=>c>1?`Wave ${n} — ${c} tasks in parallel`:`Wave ${n}`,
+    chip:{done:n=>`done ${n}`,"in-progress":n=>`writing ${n}`,review:n=>`in review ${n}`,
+      repair:n=>`in repair ${n}`,pending:n=>`waiting ${n}`,failed:n=>`failed ${n}`},
+    nowLbl:"Now:", nowIdle:"No task is running.",
+    g2:(f,x)=>`coverage check: found ${f}, closed ${x}`,
     onePass:"Single pass — tier T0, no task split",
     noTasks:"No tasks yet — still preparing.",
     thN:"#", thTitle:"Task", thReq:"Requirements", thState:"Status", thTime:"Time",
@@ -309,7 +317,9 @@ function list(items){
 function stageRow(S, id){
   const st = stageMap(S)[id] || { status: "pending" };
   const time = st.startedAt ? live(st.startedAt, st.finishedAt) : "";
-  const note = st.note ? esc(st.note) : (L.st[st.status] || "");
+  let note = st.note ? esc(st.note) : (L.st[st.status] || "");
+  /* результат независимой сверки виден там, где её проводили, — иначе о ней никто не узнает */
+  if (id === "spec" && S.coverage) note += " · " + L.g2(S.coverage.found || 0, S.coverage.fixed || 0);
   return `<div class="stage"><span class="dot ${esc(st.status)}"></span>` +
     `<span class="nm">${esc(L.stageName[id] || id)}</span>` +
     `<span class="rest">${note}${time ? " · " + time : ""}</span></div>`;
@@ -335,14 +345,29 @@ function flowBlock(S){
       (sp.files ? ` · ${sp.files.length}` : "") +
       (sp.commit ? ` · <code>${esc(sp.commit)}</code>` : "") + "</div></div>";
   }
+  /* сводка по состояниям: полосы показывают то же самое, но не отвечают «сколько сейчас» одним взглядом */
+  const order = ["in-progress", "review", "repair", "done", "pending", "failed"];
+  const chips = order
+    .map(st => [st, T.filter(t => t.status === st).length])
+    .filter(([, n]) => n > 0)
+    .map(([st, n]) => L.chip[st] ? L.chip[st](n) : `${st} ${n}`)
+    .join(" · ");
+
+  const running = T.filter(t => t.status === "in-progress" || t.status === "review" || t.status === "repair");
+  const now = running.length
+    ? `${L.nowLbl} ` + running.map(t => `${esc(t.id)} — ${esc(t.title || "")}`).join(" · ")
+    : L.nowIdle;
+
   const waves = {};
   T.forEach(t => {
     const w = t.wave || 1;
     (waves[w] = waves[w] || []).push(t);
   });
-  return Object.keys(waves).sort((a, b) => a - b).map(w =>
-    `<div class="wave">${L.wave(w, waves[w].length)}</div>` +
-    waves[w].map(taskRow).join("")).join("");
+  return `<div class="card" style="margin-bottom:10px"><div class="k">${chips}</div>` +
+    `<div class="sub">${now}</div></div>` +
+    Object.keys(waves).sort((a, b) => a - b).map(w =>
+      `<div class="wave">${L.wave(w, waves[w].length)}</div>` +
+      waves[w].map(taskRow).join("")).join("");
 }
 function taskTable(S){
   const T = S.tickets || [];

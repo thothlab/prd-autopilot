@@ -58,7 +58,7 @@ npx skills add ~/Documents/Projects/prd-autopilot --skill prd -a claude-code -g 
 
 ```
 Полуавтомат, обычная глубина: спрошу только то, что в запросе не определено, остальное решу сам.
-Документы — <vault>/Projects/mtsd/tbp-sdk-migration-2/PRD/, код — ветка codex/prd-03-transfer-form.
+Документы — <vault>/Projects/mobile/transfer-by-phone/PRD/, код — ветка codex/prd-03-transfer-form.
 Дашборд открыл, он обновляется сам. Память проекта пишу в CLAUDE.md — скажи, если не туда.
 ```
 
@@ -142,8 +142,8 @@ npx skills add ~/Documents/Projects/prd-autopilot --skill prd -a claude-code -g 
 
 | Что найдено | Куда пишутся документы |
 |---|---|
-| клон Obsidian-vault с remote `openclaw_obsidian_vault` | `<vault>/Projects/<проект>/<инициатива>/PRD/` — бандлом, с `index.md`, живыми спеками и `Правки.md` |
-| vault не найден | `.prd/` в самом репозитории |
+| Obsidian-vault, лежащий под git | `<vault>/Projects/<проект>/<инициатива>/PRD/` — бандлом, с `index.md`, живыми спеками и журналом правок |
+| vault не найден или не под git | `.prd/` в самом репозитории |
 
 Имена файлов внутри одинаковые в обоих случаях:
 

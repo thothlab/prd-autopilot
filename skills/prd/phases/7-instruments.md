@@ -22,9 +22,9 @@ window.STATE =
   "depth": "normal",
   "tier": "T2",
   "storage": "vault",
-  "prdRoot": "/Users/x/Documents/vault/Projects/mtsd/tbp-sdk-migration-2/PRD",
-  "livingSpecs": "/Users/x/Documents/vault/Projects/mtsd/tbp-sdk-migration-2/specs",
-  "docsPath": "Projects/mtsd/tbp-sdk-migration-2/PRD/",
+  "prdRoot": "/Users/x/Documents/vault/Projects/mobile/transfer-by-phone/PRD",
+  "livingSpecs": "/Users/x/Documents/vault/Projects/mobile/transfer-by-phone/specs",
+  "docsPath": "Projects/mobile/transfer-by-phone/PRD/",
   "briefFile": "prd_03_brief.md",
   "memoryFile": "CLAUDE.md",
   "codeBranch": "codex/prd-03-phone-transfer-form",
@@ -138,6 +138,10 @@ window.STATE =
 - **`status`** — залитая полоса это начатая задача, окрашенная по статусу: зелёный готово, янтарный пишется, синий на ревью, янтарный же в ремонте, красный упало, пунктирный контур для не начатого. Ревью и ремонт несут ещё и слово на полосе, потому что цветом «пишется» от «чинится» не отличить.
 - **`startedAt` при запуске, `finishedAt` при возврате** — отсюда берётся каждая длительность, живая для идущих.
 - **`wave`** — строки группируются по волнам, и волна больше одной задачи подписана «2 задачи параллельно». Это единственный вид параллельности, который пользователь видит.
+
+Над волнами дашборд сам собирает две строки, считать их не нужно: **сводку по состояниям** («готово 3 · пишутся 1 · ждут 1») и **строку «Сейчас»** с номерами и названиями идущих задач. Обе выводятся из `status`, поэтому единственное, что от тебя требуется, — держать `status` правдивым.
+
+Результат независимой сверки G2 приписывается к строке этапа «PRD и спеки»: «сверка: найдено 2, закрыто 2». Это единственное место на экране, где видно, поймал ли гейт хоть что-нибудь, — поэтому `coverage` заполняется даже когда находок ноль.
 
 ## Числа считаются, а не пишутся
 

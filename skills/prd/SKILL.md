@@ -132,8 +132,8 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] описан
 
 | Найдено | Режим | `prdRoot` | Живые спеки |
 |---|---|---|---|
-| клон с remote `thothlab/openclaw_obsidian_vault` | **vault** | `<vault>/Projects/<project>/<initiative>/PRD/` | `<vault>/.../<initiative>/specs/` |
-| vault не найден | **local** | `<repo>/.prd/` | `<repo>/.prd/specs/` |
+| Obsidian-vault под git | **vault** | `<vault>/Projects/<project>/<initiative>/PRD/` | `<vault>/.../<initiative>/specs/` |
+| vault не найден или не под git | **local** | `<repo>/.prd/` | `<repo>/.prd/specs/` |
 
 Имена файлов внутри `prdRoot` **одинаковые в обоих режимах** — так ни одна фаза не должна помнить, где она работает. Всё, что специфично для vault (OKF-frontmatter, `index.md`, `Правки.md`, `[[wikilinks]]`, коммит в репозиторий vault), в local-режиме просто не выполняется, и об этом говорится одной строкой во вступительном блоке. Подробности — `phases/0-preflight.md`.
 
