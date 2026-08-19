@@ -521,7 +521,9 @@ function bind(){
   document.querySelectorAll("[data-lang]").forEach(b => {
     b.onclick = () => { lang = b.dataset.lang; L = DICT[lang]; store("prd-lang", lang); render(); };
   });
-  document.querySelectorAll("[data-theme]").forEach(b => {
+  /* только кнопки: applyTheme вешает data-theme на <html>, и голый [data-theme]
+     ловил бы им же корень документа - тогда любой клик всплывал бы в этот обработчик */
+  document.querySelectorAll("button[data-theme]").forEach(b => {
     b.onclick = () => {
       theme = (theme === b.dataset.theme) ? "system" : b.dataset.theme;
       store("prd-theme", theme);
