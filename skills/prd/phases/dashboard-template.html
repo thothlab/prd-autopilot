@@ -26,8 +26,7 @@
     -webkit-font-smoothing:antialiased}
   .wrap{max-width:1020px;margin:0 auto;min-width:0}
   .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
-  .mark{font-size:34px;font-weight:700;letter-spacing:-.035em;line-height:1}
-  .mark span{color:var(--accent)}
+  .mark{font-size:26px;font-weight:700;letter-spacing:-.025em;line-height:1.1;min-width:0}
   .segs{margin-left:auto;display:flex;gap:8px}
   .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
   .seg button{appearance:none;border:0;background:transparent;color:var(--dim);cursor:pointer;
@@ -410,7 +409,7 @@ function controls(){
 function render(){
   const app = document.getElementById("app");
   const S = window.STATE;
-  const head = `<div class="top"><div class="mark">prd<span>.</span></div>${controls()}</div>`;
+  const head = `<div class="top"><div class="mark">Product Requirements Document</div>${controls()}</div>`;
 
   if (!S || typeof S !== "object"){
     app.innerHTML = head + `<div class="miss"><h1>${L.noState}</h1><p>${L.noStateWhy}</p></div>`;
@@ -522,7 +521,7 @@ function bind(){
     b.onclick = () => { lang = b.dataset.lang; L = DICT[lang]; store("prd-lang", lang); render(); };
   });
   /* только кнопки: applyTheme вешает data-theme на <html>, и голый [data-theme]
-     ловил бы им же корень документа - тогда любой клик всплывал бы в этот обработчик */
+     ловил бы им же корень документа — тогда любой клик всплывал бы в этот обработчик */
   document.querySelectorAll("button[data-theme]").forEach(b => {
     b.onclick = () => {
       theme = (theme === b.dataset.theme) ? "system" : b.dataset.theme;
