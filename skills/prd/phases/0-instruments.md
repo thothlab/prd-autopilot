@@ -40,7 +40,7 @@ window.STATE =
   "prd": "prd_03",
   "mode": "semi",
   "depth": "normal",
-  "agents": 5,
+  "agents": 3,
   "polish": null,
   "tier": null,
   "storage": "vault",
