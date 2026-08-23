@@ -1,7 +1,7 @@
 ---
 name: prd
-description: Use for an initiative that has to be specified before it is built and delivered end to end — requirements, PRD, spec deltas against living specs, task decomposition, code, reports. Triggers on /prd, on a request for a PRD or ТЗ with tasks, on «разнеси по задачам», «собери под ключ», on closing a finished PRD (/prd archive 02), and on a named setting for how much to ask and how far to elaborate — «полный автомат», «ручной режим», «разбери со мной», «строго по запросу», «продумай глубоко», «сравни с эталоном».
-argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] описание инициативы или путь к файлу · archive NN"
+description: Use for an initiative that has to be specified before it is built and delivered end to end — requirements, PRD, spec deltas against living specs, task decomposition, code, reports. Triggers on /prd, on a request for a PRD or ТЗ with tasks, on «разнеси по задачам», «собери под ключ», on closing a finished PRD (/prd archive 02), and on a named setting for how much to ask, how far to elaborate and how wide to run — «полный автомат», «ручной режим», «разбери со мной», «строго по запросу», «продумай глубоко», «сравни с эталоном», «agents 2», «агентов 2».
+argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] описание инициативы или путь к файлу · archive NN"
 ---
 
 # PRD
@@ -108,6 +108,8 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] описан
 | 8 Приёмка | отчёт + «решения за тебя» | отчёт | отчёт | отчёт |
 
 **`polish` вставляет шаг внутрь Фазы 8 при любом режиме** — круги доводки между слепой приёмкой и отчётом. Таблицу выше он не трогает: у пользователя он ничего не спрашивает и ничего с ним не согласовывает.
+
+**`agents N` меняет одну клетку — потолок одновременных задач в Фазе 5**, по умолчанию пять. Ни на один гейт и ни на один документ он не влияет: это скорость расхода лимитов, а не устройство работы. Правила — в `phases/0-modes.md`, применение — в `phases/5-subagents.md`.
 
 **Между `interview` и `manual` разница ровно в двух клетках** — гейт PRD и гейт плана. Поймал себя на том, что ведёшь их по-разному где-то ещё, — значит, одну из двух строк ты выполняешь неверно.
 

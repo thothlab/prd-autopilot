@@ -20,6 +20,7 @@ window.STATE =
   "prd": "prd_03",
   "mode": "semi",
   "depth": "normal",
+  "agents": 5,
   "tier": "T2",
   "storage": "vault",
   "prdRoot": "/Users/x/Documents/vault/Projects/example/favorites/PRD",
