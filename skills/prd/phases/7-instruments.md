@@ -80,7 +80,7 @@ window.STATE =
   "additions": ["Счётчик на карточке — ради R01"],
   "coverage": { "found": 2, "fixed": 2, "deferred": 0 },
   "concerns": ["features/favorites/ui/FavoritesScreen.kt:40 — два формата даты в одном файле"],
-  "reviewers": { "manifestSpec": "rev-ms-1", "craft": "rev-craft-1" },
+  "stand": "https://malavito.thothlab.tech/",
   "blind": null,
   "polish": null
 }
