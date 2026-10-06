@@ -8,9 +8,9 @@
 
 | Проверка | Файл |
 |---|---|
+| есть оба | тот, в котором уже лежит описание проекта; если ни в одном — `AGENTS.md`, а второй **не трогать** |
 | `CLAUDE.md` уже есть | `CLAUDE.md` |
 | `AGENTS.md` уже есть | `AGENTS.md` |
-| есть оба | тот, в котором уже лежит описание проекта; если ни в одном — `AGENTS.md`, а второй **не трогать** |
 | каталог `.claude/`, или установлены `$CLAUDECODE` / `$CLAUDE_CODE_ENTRYPOINT` | `CLAUDE.md` |
 | каталог `.cursor/` | `AGENTS.md` |
 | каталог `.codex/`, или `.github/copilot-instructions.md` | `AGENTS.md` |
