@@ -35,10 +35,11 @@
 5. **Закоммитить vault** — третий и последний коммит vault за жизнь PRD:
 
    ```bash
-   git -C "$vault" add "Projects/<project>/<initiative>/"
-   git -C "$vault" commit -m "prd-XX: архивирование — <slug>"
-   git -C "$vault" push
+   git -C "<vaultRoot>" add "Projects/<project>/<initiative>/" \
+     && git -C "<vaultRoot>" commit -m "prd-XX: архивирование — <slug>" \
+     && git -C "<vaultRoot>" push
    ```
+   `<vaultRoot>` — путь из `state.js`, подставляется литералом; команды сцеплены `&&`, чтобы упавший `add` не довёл дело до `push`.
 
 6. **Сказать пользователю одну строку**: «PRD 03 закрыт: два требования влились в живую спеку `favorites`, папка уехала в Archive.» Ни таблиц, ни списков файлов.
 

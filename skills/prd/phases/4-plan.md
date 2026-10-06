@@ -235,10 +235,11 @@ PRD: Истории 1-3, Решения §2, Границы §1.
 Потом коммить документы в репозиторий vault — это первый из трёх коммитов vault за прогон:
 
 ```bash
-git -C "$vault" add "Projects/<project>/<initiative>/"
-git -C "$vault" commit -m "prd-XX: планирование закончено — <slug>"
-git -C "$vault" push
+git -C "<vaultRoot>" add "Projects/<project>/<initiative>/" \
+  && git -C "<vaultRoot>" commit -m "prd-XX: планирование закончено — <slug>" \
+  && git -C "<vaultRoot>" push
 ```
+`<vaultRoot>` — путь из `state.js`, подставляется литералом; команды сцеплены `&&`, чтобы упавший `add` не довёл дело до `push`.
 
 В local-режиме документы лежат в `.prd/` кодового репозитория и уходят в первый же коммит задачи; отдельного коммита документов там нет.
 

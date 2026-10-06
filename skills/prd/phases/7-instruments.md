@@ -23,6 +23,7 @@ window.STATE =
   "agents": 3,
   "tier": "T2",
   "storage": "vault",
+  "vaultRoot": "/Users/x/Documents/vault",
   "prdRoot": "/Users/x/Documents/vault/Projects/example/favorites/PRD",
   "livingSpecs": "/Users/x/Documents/vault/Projects/example/favorites/specs",
   "docsPath": "Projects/example/favorites/PRD/",
@@ -108,7 +109,7 @@ window.STATE =
 `wave` и `zone` приходят из Фазы 4: волна решает, что летит вместе, зона — почему это можно.
 `tests` — последний **полный** прогон; `blind` остаётся `null` до финальной фазы.
 `coverage` — независимая сверка на гейте G2 (`phases/3-prd.md`), пишется один раз и читается отчётом Фазы 8. `null` значит, что проверка не проводилась, **а не** что она ничего не нашла: прогон, дошедший до работы с `coverage: null`, пропустил гейт.
-`storage`, `prdRoot`, `livingSpecs` — результат выбора хранилища в Фазе 0; после сжатия контекста восстановить их неоткуда.
+`storage`, `prdRoot`, `livingSpecs`, `vaultRoot` — результат выбора хранилища в Фазе 0; после сжатия контекста восстановить их неоткуда.
 `polish` остаётся `null` на каждом прогоне без параметра доводки, то есть на большинстве.
 
 **Никогда не клади сюда значение секрета.** `emptyEnv` держит только имена.

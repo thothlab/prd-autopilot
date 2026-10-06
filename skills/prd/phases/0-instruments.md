@@ -44,6 +44,7 @@ window.STATE =
   "polish": null,
   "tier": null,
   "storage": "vault",
+  "vaultRoot": "/Users/x/Documents/vault",
   "prdRoot": "/Users/x/Documents/vault/Projects/example/favorites/PRD",
   "livingSpecs": "/Users/x/Documents/vault/Projects/example/favorites/specs",
   "docsPath": "Projects/example/favorites/PRD/",
@@ -85,7 +86,7 @@ window.STATE =
 Шесть полей существуют потому, что контекст оркестратора не переживает сжатие, а восстановить их из репозитория нельзя:
 
 - **`skillDir`** — вычислен в §1. Без него два контракта субагентов перестают уезжать вниз, и прогон тихо вырождается в обычный вайбкодинг.
-- **`prdRoot`, `livingSpecs`, `storage`** — результат поиска vault из `phases/0-preflight.md`. Искать заново после сжатия — это минуты и шанс завести второй бандл.
+- **`prdRoot`, `livingSpecs`, `vaultRoot`, `storage`** — результат поиска vault из `phases/0-preflight.md`. Искать заново после сжатия — это минуты и шанс завести второй бандл.
 - **`concerns`** — отложенные находки Craft, на верхнем уровне, а не только внутри задачи: на ярусе T0 задач нет, а разбор в `phases/8-final.md` был единственным оправданием откладывания.
 - **`stand`** — адрес, на котором заказчик смотрит результат (`phases/4-plan.md`). Заполняется, когда стенд есть, и уезжает вниз в критериях приёмки каждой задачи с видимой поверхностью. `null` значит «стенда нет», а не «забыли».
 

@@ -202,10 +202,11 @@
 Дальше — **коммит документов**: в vault-режиме весь бандл инициативы уходит одним коммитом и пушится.
 
 ```bash
-git -C "$vault" add "Projects/<project>/<initiative>/"
-git -C "$vault" commit -m "prd-XX: работа закончена — <slug>"
-git -C "$vault" push
+git -C "<vaultRoot>" add "Projects/<project>/<initiative>/" \
+  && git -C "<vaultRoot>" commit -m "prd-XX: работа закончена — <slug>" \
+  && git -C "<vaultRoot>" push
 ```
+`<vaultRoot>` — путь из `state.js`, подставляется литералом; команды сцеплены `&&`, чтобы упавший `add` не довёл дело до `push`.
 
 **Кодовый репозиторий не пушится.** Ветка остаётся локальной, и об этом сказано в отчёте отдельной строкой.
 

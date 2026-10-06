@@ -21,19 +21,22 @@
 Ищи Obsidian-vault, лежащий под git, — документы должны попадать в репозиторий, а не просто в папку:
 
 ```bash
-for d in $(find ~/Documents ~/Obsidian ~ -maxdepth 4 -name .obsidian -type d 2>/dev/null); do
-  v=$(dirname "$d"); git -C "$v" rev-parse --git-dir >/dev/null 2>&1 && echo "$v"
-done
+find ~/Documents ~/Obsidian ~ -maxdepth 4 -name .obsidian -type d -print0 2>/dev/null \
+  | while IFS= read -r -d '' d; do
+      v=$(dirname "$d"); git -C "$v" rev-parse --git-dir >/dev/null 2>&1 && echo "$v"
+    done | sort -u
 ```
+
+Цикл `for d in $(find …)` не использовать: он рвёт пути по пробелам, и из кодового репозитория `dirname` обрывка даёт `.` — vault-ом объявляется сам репозиторий.
 
 Нашлось несколько — выбирай по порядку: тот, чей путь назван в `CLAUDE.md` или `AGENTS.md` кодового репозитория; тот, где уже есть каталог этой инициативы; первый по алфавиту. Выбор назови одной строкой во вступительном блоке — это не вопрос, но и не тайна. Не нашлось ни одного, или ни один не под git — работаем в local-режиме.
 
 | Итог | Режим | `prdRoot` | `livingSpecs` |
 |---|---|---|---|
 | путь найден | **vault** | `<vault>/Projects/<project>/<initiative>/PRD/` | `<vault>/Projects/<project>/<initiative>/specs/` |
-| пусто | **local** | `<repo>/.prd/` | `<repo>/.prd/specs/` |
+| пусто | **local** | `<repo>/.prd/PRD/` | `<repo>/.prd/specs/` |
 
-Запиши оба пути в `state.js` как `prdRoot` и `livingSpecs`, а сам режим — как `storage: "vault" | "local"`. **Выводить их заново после сжатия контекста не из чего** — поиск отдал путь один раз, и это единственное место, где он записан.
+Запиши оба пути в `state.js` как `prdRoot` и `livingSpecs`, корень vault — как `vaultRoot` (в local-режиме `null`), а сам режим — как `storage: "vault" | "local"`. В командах git `vaultRoot` подставляется литералом: переменная шелла между вызовами не живёт, а `git -C ""` молча работает в текущем каталоге — то есть в кодовом репозитории. **Выводить их заново после сжатия контекста не из чего** — поиск отдал путь один раз, и это единственное место, где он записан.
 
 **`<project>` / `<initiative>` в vault-режиме определяются в таком порядке, и первое совпадение выигрывает:**
 
