@@ -1,6 +1,6 @@
 ---
 name: prd
-description: Use for an initiative that has to be specified before it is built and delivered end to end — requirements, PRD, spec deltas against living specs, task decomposition, code, reports. Triggers on /prd, on a request for a PRD or ТЗ with tasks, on «разнеси по задачам», «собери под ключ», on closing a finished PRD (/prd archive 02), and on a named setting for how much to ask, how far to elaborate and how wide to run — «полный автомат», «ручной режим», «разбери со мной», «строго по запросу», «продумай глубоко», «сравни с эталоном», «agents 2», «агентов 2».
+description: Takes an initiative from request to delivered code end to end — requirements, PRD, spec deltas against living specs, task decomposition, code with each task built by its own subagent, reports, and acceptance against the user's original words. Use for an initiative that has to be specified before it is built. Triggers on /prd, on a request for a PRD or ТЗ with tasks, on «разнеси по задачам», «собери под ключ», on closing a finished PRD (/prd archive 02), and on a named setting for how much to ask, how far to elaborate and how wide to run — «полный автомат», «ручной режим», «разбери со мной», «строго по запросу», «продумай глубоко», «сравни с эталоном», «agents 2», «агентов 2».
 argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] описание инициативы или путь к файлу · archive NN"
 ---
 
@@ -46,6 +46,7 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] �
 | — | `phases/10-archive.md` — только по команде `/prd archive NN` | дельты влиты в живые спеки, PRD в `Archive/` |
 | — | `phases/rationalizations.md` — на провале гейта, когда ловишь себя на оправдании, и один раз перед отчётом | ничего; это чеклист |
 | — | `phases/polish.md` — только с параметром `polish` | круги доводки |
+| — | `prompts/executor.md`, `prompts/craft-review.md` — **не открывать**: уходят субагентам путём `<skillDir>/prompts/…` в Фазах 5 и 6 | ничего; это контракты исполнителя и ревьюера |
 
 ## Слова, которые видит пользователь
 
@@ -93,7 +94,7 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] �
 - Пользователь диктует инициативу и ждёт результат, а не совместную работу над процессом.
 - Нужен PRD с декомпозицией на задачи — с исполнением или без.
 - «Собери под ключ», «сделай ТЗ и разнеси по задачам», «не задавай лишних вопросов».
-- Пользователь хочет, чтобы задачу разобрали с ним вопрос за вопросом, а собрали без него — это **interview**.
+- Пользователь хочет, чтобы инициативу разобрали с ним вопрос за вопросом, а собрали без него — это **interview**.
 - Пользователь хочет утвердить PRD и список задач, но не гонять процесс руками — это **manual**.
 
 **Когда НЕ применять:** правка в одном файле (просто сделай её); совместное написание кода строка за строкой (работай напрямую); инициатива, которая больше одного проекта и чья цель ещё не определена (сначала цель).
@@ -189,7 +190,7 @@ CLAUDE.md | AGENTS.md        память проекта — то, что сле
 
 ## Суждение
 
-Скилл описывает процесс, а не результат. Все его числа — ярусы, количество вопросов, число историй, ширина волны — **отправная точка для прикидки, а не показатели, которых надо достичь.** PRD, написанный ради количества историй, и план, подрезанный, чтобы попасть в ярус, обслуживают правило, а не человека, который поставил задачу.
+Скилл описывает процесс, а не результат. Все его числа — ярусы, количество вопросов, число историй, ширина волны — **отправная точка для прикидки, а не показатели, которых надо достичь.** PRD, написанный ради количества историй, и план, подрезанный, чтобы попасть в ярус, обслуживают правило, а не человека, от которого пришёл запрос.
 
 С правилами то же самое. Каждое стоит здесь потому, что за него однажды заплатили, и каждое можно оспорить — на то оно и довод. Если следование правилу в конкретном месте ухудшит результат, нарушь его намеренно, скажи об этом одной строкой и работай дальше: это решение, а решения записывают. Плохи только два способа обойтись с правилом — нарушить молча и выполнить потому, что так написано.
 
