@@ -150,6 +150,8 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] �
 ├── prd_XX_manifest.md       R01…Rnn — требования и их судьба
 ├── prd_XX_scratch.md        находки сбора контекста и «осталось неизвестным»
 ├── prd_XX_reference.md      эталон — только то, что назвал пользователь
+├── prd_XX_notes.md          имена, конвенции и команды кода — исполнителям, путём
+├── progress.md              что прошлый PRD оставил следующему, переписывается на посадке
 ├── prd_XX_<slug>.md         сам PRD
 ├── prd_XX_interfaces.md     границы из спеки, потом — что построили готовые задачи
 ├── prd_XX_task_NN_<slug>.md задачи
