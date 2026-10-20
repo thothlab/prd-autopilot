@@ -1,585 +1,1162 @@
 <!doctype html>
+<html lang="ru">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>prd</title>
+<!-- Вёрстка и часть логики — по dashboard-template.html из nick-vels/skills (MIT, (c) 2026 Nick Vels). -->
 <style>
+  /* Цвет — сигнал состояния: синий — идёт работа, оранжевый — ждём человека или задача пишется,
+     зелёный — сдано, бирюзовый — ревью, фиолетовый — ремонт, красный — упало. */
   :root{
-    --bg:#f7f7f5; --card:#ffffff; --ink:#1a1a19; --dim:#6b6b66; --line:#e3e3de;
-    --accent:#1f6f5c; --warn:#b4581a; --bad:#b3372c; --good:#2f7a44; --busy:#c58a12;
-    --track:#eceae5; --shadow:0 1px 2px rgba(0,0,0,.05);
+    --bg:#F2F2F4; --card:#fff; --inset:#F4F4F6; --soft:#EBEBEE; --line:rgba(0,0,0,.07); --line2:rgba(0,0,0,.11);
+    --tx:#111113; --tx2:#3A3A3C; --mut:#6B6B70; --quiet:#8E8E93;
+    --hero:#2F45E0; --hero-shadow:rgba(40,60,220,.55);
+    --done:#17864A; --done-soft:#E2F3E9; --done-tx:#126B3B;
+    --now:#FF6B35; --now-on:#1A0D06; --now-soft:#FFE9DF; --now-tx:#AD3D0E;
+    --rev:#0B7F8A; --rev-tx:#08666F;
+    --fix:#7C3AED; --fix-tx:#6427D0;
+    --bad:#DC2626; --bad-tx:#B01C1C;
+    --idle:#D4D4D9;
+    --sh:0 1px 2px rgba(0,0,0,.04),0 12px 30px -20px rgba(20,24,40,.2);
+    --sh-raised:0 1px 2px rgba(0,0,0,.035),0 16px 36px -24px rgba(20,24,40,.24);
   }
-  @media (prefers-color-scheme: dark){
+  @media (prefers-color-scheme:dark){
     :root:not([data-theme="light"]){
-      --bg:#16171a; --card:#1e2024; --ink:#e8e8e4; --dim:#9a9a94; --line:#2e3136;
-      --accent:#4fb495; --warn:#e0954a; --bad:#e0685c; --good:#63c07e; --busy:#e0b04a;
-      --track:#282b30; --shadow:none;
+      --bg:#17181B; --card:#222327; --inset:#2C2D32; --soft:#323338; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+      --tx:#F2F2F3; --tx2:#C7C7CC; --mut:#A3A3AA; --quiet:#85858C;
+      --hero:#2639C2; --hero-shadow:rgba(0,0,0,.7);
+      --done:#1E9A56; --done-soft:#1C3527; --done-tx:#5BD68C;
+      --now-soft:#43271C; --now-tx:#FF8A5C;
+      --rev:#0E8A96; --rev-tx:#6FD6E0;
+      --fix:#8B4DF5; --fix-tx:#BFA2FF;
+      --bad:#E5383B; --bad-tx:#FF8B8B;
+      --idle:#4A4B51;
+      --sh:0 1px 0 rgba(255,255,255,.03) inset,0 12px 30px -20px rgba(0,0,0,.75);
+      --sh-raised:0 16px 36px -24px rgba(0,0,0,.8);
+      color-scheme:dark;
     }
   }
   :root[data-theme="dark"]{
-    --bg:#16171a; --card:#1e2024; --ink:#e8e8e4; --dim:#9a9a94; --line:#2e3136;
-    --accent:#4fb495; --warn:#e0954a; --bad:#e0685c; --good:#63c07e; --busy:#e0b04a;
-    --track:#282b30; --shadow:none;
+    --bg:#17181B; --card:#222327; --inset:#2C2D32; --soft:#323338; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --tx:#F2F2F3; --tx2:#C7C7CC; --mut:#A3A3AA; --quiet:#85858C;
+    --hero:#2639C2; --hero-shadow:rgba(0,0,0,.7);
+    --done:#1E9A56; --done-soft:#1C3527; --done-tx:#5BD68C;
+    --now-soft:#43271C; --now-tx:#FF8A5C;
+    --rev:#0E8A96; --rev-tx:#6FD6E0;
+    --fix:#8B4DF5; --fix-tx:#BFA2FF;
+    --bad:#E5383B; --bad-tx:#FF8B8B;
+    --idle:#4A4B51;
+    --sh:0 1px 0 rgba(255,255,255,.03) inset,0 12px 30px -20px rgba(0,0,0,.75);
+    --sh-raised:0 16px 36px -24px rgba(0,0,0,.8);
+    color-scheme:dark;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);padding:30px 18px 70px;
-    font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  [hidden]{display:none!important}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
     -webkit-font-smoothing:antialiased}
-  .wrap{max-width:1020px;margin:0 auto;min-width:0}
-  .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
-  .mark{font-size:26px;font-weight:700;letter-spacing:-.025em;line-height:1.1;min-width:0}
-  .segs{margin-left:auto;display:flex;gap:8px}
-  .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
-  .seg button{appearance:none;border:0;background:transparent;color:var(--dim);cursor:pointer;
-    font:600 11px/1 inherit;letter-spacing:.07em;padding:8px 11px}
-  .seg button:hover{color:var(--ink)}
-  .seg button[aria-pressed="true"]{background:var(--accent);color:var(--bg)}
-  h1{font-size:18px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
-  h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
-    color:var(--dim);margin:30px 0 10px}
-  .badges{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 20px}
-  .badge{font-size:11px;font-weight:600;letter-spacing:.03em;padding:4px 9px;border-radius:999px;
-    border:1px solid var(--line);color:var(--dim);background:var(--card)}
-  .badge.on{border-color:transparent;background:var(--accent);color:var(--bg)}
-  .headline{background:var(--card);border:1px solid var(--line);border-radius:14px;
-    padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
-  .headline .n{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
-  .bar{height:7px;border-radius:99px;background:var(--track);overflow:hidden;margin:12px 0 8px}
-  .bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
-    box-shadow:var(--shadow);min-width:0}
-  .k{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
-  .v{font-size:23px;font-weight:650;letter-spacing:-.01em;margin-top:5px;overflow-wrap:anywhere}
-  .sub{font-size:12.5px;color:var(--dim);margin-top:4px;overflow-wrap:anywhere}
-  .stage{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-  .stage:last-child{border-bottom:0}
-  .dot{width:8px;height:8px;border-radius:99px;background:var(--track);flex:0 0 auto;
-    align-self:center;border:1px solid var(--line)}
-  .dot.done{background:var(--good);border-color:transparent}
-  .dot.active{background:var(--busy);border-color:transparent;animation:pulse 1.6s infinite}
-  .dot.skipped{background:var(--track);border-style:dashed}
-  .dot.failed{background:var(--bad);border-color:transparent}
-  @keyframes pulse{50%{opacity:.35}}
-  .stage .nm{font-weight:550}
-  .stage .rest{margin-left:auto;font-size:12.5px;color:var(--dim);text-align:right}
-  .wave{margin:14px 0 4px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.04em}
-  .task{display:flex;align-items:center;gap:10px;padding:7px 0}
-  .track{flex:1 1 auto;height:26px;border-radius:7px;background:var(--track);position:relative;
-    overflow:hidden;min-width:0}
-  .track.pending{background:transparent;border:1px dashed var(--line)}
-  .fill{position:absolute;inset:0;width:100%;opacity:.16}
-  .fill.done{background:var(--good)} .fill.inprogress{background:var(--busy)}
-  .fill.review{background:var(--accent)} .fill.repair{background:var(--warn)}
-  .fill.failed{background:var(--bad)}
-  .track .lbl{position:relative;display:flex;align-items:center;gap:8px;height:100%;
-    padding:0 10px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .track .phase{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-    color:var(--dim);flex:0 0 auto}
-  .task .t{flex:0 0 auto;font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums;
-    min-width:62px;text-align:right}
-  .num{flex:0 0 auto;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;width:22px}
-  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
-  table{border-collapse:collapse;width:100%;font-size:13.5px}
-  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
-  th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);font-weight:600}
-  tr:last-child td{border-bottom:0}
-  td.wrapcell{white-space:normal;min-width:200px}
-  ul.plain{list-style:none;margin:0;padding:0}
-  ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px;overflow-wrap:anywhere}
-  ul.plain li:last-child{border-bottom:0}
-  .empty{color:var(--dim);font-size:13.5px}
-  .foot{margin-top:34px;padding-top:14px;border-top:1px solid var(--line);
-    display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--dim)}
-  .foot .stale{color:var(--warn);font-weight:600}
-  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--track);
-    padding:1px 5px;border-radius:5px}
-  .miss{max-width:560px;margin:70px auto;text-align:center;color:var(--dim)}
-</style>
+  :focus-visible{outline:2px solid var(--now);outline-offset:3px}
+  code,.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  .big b,.tv,.s-time,.tl-time,.ev em{font-variant-numeric:tabular-nums}
+  a{color:inherit}
+  .wrap{max-width:1320px;margin:0 auto;padding:22px 32px 40px;display:flex;flex-direction:column;gap:20px;min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--sh);padding:24px 26px;min-width:0}
+  .ic{width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .ic.xs{width:14px;height:14px;stroke-width:2.6}
+  .ic.m{width:20px;height:20px}
+  .wt{font-size:17px;font-weight:650;letter-spacing:-.01em;margin:0;line-height:1.3;display:flex;align-items:center;gap:10px}
+  .whead{display:flex;align-items:baseline;justify-content:space-between;gap:8px 12px;margin-bottom:16px;flex-wrap:wrap}
+  .whead>span{font-size:14px;color:var(--mut)}
 
+  /* верх */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .mark{font-size:26px;font-weight:800;letter-spacing:-.04em;line-height:1}
+  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .tabs{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh-raised)}
+  .tabs button,.iconbtn{appearance:none;border:0;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+  .tabs button{height:36px;min-width:40px;padding:0 12px;border-radius:999px;background:transparent;color:var(--mut);font-size:13.5px;font-weight:650}
+  .tabs button:hover{color:var(--tx)}
+  .tabs button[aria-pressed="true"]{background:var(--tx);color:var(--card)}
+  .iconbtn{width:44px;height:44px;border-radius:999px;border:1px solid var(--line);background:var(--card);box-shadow:var(--sh-raised);color:var(--tx)}
+  .iconbtn:active{transform:scale(.96)}
+  .iconbtn.busy svg{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .title h1{margin:0;font-size:32px;line-height:1.12;font-weight:700;letter-spacing:-.03em;text-wrap:balance;overflow-wrap:anywhere}
+  .meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+  .tag{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:999px;background:var(--card);border:1px solid var(--line2);font-size:13px;font-weight:600;color:var(--tx2)}
+  .meta .when{font-size:14px;color:var(--mut);margin-left:4px}
+  .lost{max-width:1320px;margin:0 auto;padding:16px 32px 0}
+  #link{background:var(--now);color:var(--now-on);border-radius:18px;padding:14px 18px;font-weight:600;font-size:14.5px;line-height:1.45}
+
+  /* шапка состояния */
+  .hero{--h-tx:#fff;--h-mut:rgba(255,255,255,.82);--h-track:rgba(255,255,255,.24);
+    border-radius:28px;padding:28px 30px 26px;display:flex;flex-direction:column;gap:28px;
+    background:var(--hero);color:var(--h-tx);box-shadow:0 30px 60px -32px var(--hero-shadow);min-width:0}
+  .hero.ask{background:#FF6B35;--h-tx:#1A0D06;--h-mut:rgba(26,13,6,.74);--h-track:rgba(26,13,6,.16);box-shadow:0 30px 60px -30px rgba(200,70,20,.6)}
+  .hero.won{background:#17864A;--h-track:rgba(255,255,255,.22);box-shadow:0 30px 60px -30px rgba(23,134,74,.6)}
+  .hero.bad{background:#C81E1E;--h-track:rgba(255,255,255,.22);box-shadow:0 30px 60px -30px rgba(200,30,30,.55)}
+  .hero-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:20px 40px}
+  .hero-main{flex:1 1 420px;min-width:0}
+  .state{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:700;margin-bottom:12px}
+  .hero h2{margin:0;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:-.03em;text-wrap:balance;max-width:32ch;overflow-wrap:anywhere}
+  .lead{margin:12px 0 0;font-size:16.5px;line-height:1.5;color:var(--h-mut);max-width:64ch;overflow-wrap:anywhere}
+  .lead b{color:var(--h-tx);font-weight:650}
+  .big{text-align:right;flex:0 0 auto}
+  .big b{display:block;font-size:58px;line-height:.95;font-weight:700;letter-spacing:-.045em}
+  .big b small{font-size:24px;letter-spacing:-.02em;font-weight:600;margin-left:6px}
+  .big>span{display:block;font-size:14px;color:var(--h-mut);margin-top:10px}
+  .big .paused{display:block;margin-top:6px;font-weight:650;color:var(--h-tx)}
+  .hint{display:inline-flex;align-items:center;gap:10px;margin-top:18px;min-height:44px;padding:8px 18px;border-radius:22px;background:#1A0D06;color:#fff;font-size:15px;font-weight:600;line-height:1.35}
+  .track{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px}
+  .seg{height:12px;border-radius:4px;background:var(--h-track);overflow:hidden}
+  .seg i{display:block;height:100%;border-radius:4px}
+  .s-done .seg i{width:100%;background:#21A35B}
+  .hero.won .s-done .seg i,.hero.bad .s-done .seg i{background:#fff}
+  .hero.ask .s-done .seg i{background:#1A0D06}
+  .s-now .seg i{background-color:var(--now)}
+  .hero.ask .s-now .seg i{background-color:#fff}
+  .s-fail .seg i{width:100%;background:#fff}
+  .s-skip .seg{background:repeating-linear-gradient(135deg,var(--h-track) 0 4px,transparent 4px 8px)}
+  .s-name{display:block;margin-top:10px;font-size:13px;font-weight:600;line-height:1.3}
+  .s-now .s-name,.s-fail .s-name{font-weight:750}
+  .s-pend .s-name,.s-skip .s-name{color:var(--h-mut);font-weight:500}
+  .s-time{display:block;margin-top:2px;font-size:12.5px;color:var(--h-mut)}
+  .live{width:9px;height:9px;border-radius:50%;background:var(--now);outline:2px solid rgba(255,255,255,.9);display:inline-block;flex:0 0 auto;animation:pulse 1.8s cubic-bezier(.16,1,.3,1) infinite}
+  .hero.ask .live{background:#1A0D06;outline:0}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,53,.6)}70%{box-shadow:0 0 0 9px rgba(255,107,53,0)}100%{box-shadow:0 0 0 0 rgba(255,107,53,0)}}
+  .badge-ic{width:26px;height:26px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center}
+  .hero.won .badge-ic{color:#17864A}.hero.bad .badge-ic{color:#C81E1E}
+  .stripes{background-image:linear-gradient(135deg,rgba(255,255,255,.28) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.28) 50%,rgba(255,255,255,.28) 75%,transparent 75%,transparent);background-size:22px 22px;animation:stripes 1.1s linear infinite}
+  .hero.ask .stripes{background-image:linear-gradient(135deg,rgba(255,107,53,.5) 25%,transparent 25%,transparent 50%,rgba(255,107,53,.5) 50%,rgba(255,107,53,.5) 75%,transparent 75%,transparent)}
+  @keyframes stripes{to{background-position:22px 0}}
+
+  /* плитки */
+  .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+  .tile{display:flex;flex-direction:column;gap:11px;padding:20px 22px}
+  .tk{font-size:13.5px;font-weight:600;color:var(--mut)}
+  .tv{font-size:38px;line-height:1;font-weight:700;letter-spacing:-.04em}
+  .tv small{font-size:17px;font-weight:600;color:var(--mut);letter-spacing:-.01em;margin-left:4px}
+  .tv.dim{color:var(--quiet)}
+  .ts{font-size:13px;color:var(--mut);line-height:1.4}
+  .stack{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;background:var(--inset)}
+  .stack i{display:block;height:100%}
+  .sq{display:flex;gap:5px;flex-wrap:wrap}
+  .sq i{width:18px;height:18px;border-radius:5px;display:block}
+  .okb{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:700;align-self:flex-start;color:#fff}
+
+  /* цвета статусов */
+  .f-done{background:var(--done);color:#fff}
+  .f-now{background-color:var(--now);color:var(--now-on)}
+  .f-rev{background:var(--rev);color:#fff}
+  .f-fix{background:var(--fix);color:#fff}
+  .f-bad{background:var(--bad);color:#fff}
+  .f-wait{background:transparent;color:var(--mut);border:1.5px dashed var(--idle)}
+  .f-idle{background:var(--idle)}
+  .f-q{background:var(--quiet)}
+
+  /* ход работы */
+  .legend{display:flex;flex-wrap:wrap;gap:6px}
+  .lg{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 9px;border-radius:999px;background:var(--inset);font-size:13px;font-weight:600;color:var(--tx2)}
+  .lg i{width:11px;height:11px;border-radius:3px;display:block}
+  .lg b{font-weight:750;color:var(--tx)}
+  .wave{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:12px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--quiet);margin:18px 0 8px}
+  .whead+.wave{margin-top:4px}
+  .wave span{text-transform:none;letter-spacing:0;font-weight:500;font-size:13px}
+  .tl{display:grid;grid-template-columns:32px minmax(0,1fr) 64px;gap:4px 12px;align-items:center;margin-bottom:7px}
+  .tl-id{font-size:14.5px;font-weight:750;color:var(--quiet)}
+  .tl-id.on{color:var(--tx)}
+  .bar{height:42px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 6px 0 15px;font-size:14.5px;font-weight:650;min-width:0}
+  .bar .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .chipin{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.2);font-size:12.5px;font-weight:700;white-space:nowrap}
+  .f-now .chipin{background:rgba(26,13,6,.12)}
+  .f-wait .chipin{background:var(--inset);color:var(--mut)}
+  .tl-time{font-size:13.5px;font-weight:650;text-align:right;color:var(--mut);white-space:nowrap}
+  .tl-time.now{color:var(--now-tx)}.tl-time.fix{color:var(--fix-tx)}.tl-time.rev{color:var(--rev-tx)}.tl-time.bad{color:var(--bad-tx)}
+  .tl-note{grid-column:2/4;display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.45;padding:1px 2px 6px;overflow-wrap:anywhere}
+  .tl-note.fix{color:var(--fix-tx)}.tl-note.bad{color:var(--bad-tx)}
+  .tl-note .ic{margin-top:2px}
+
+  /* колонки и списки */
+  .cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px;align-items:start}
+  .col{display:flex;flex-direction:column;gap:20px;min-width:0}
+  .req{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+  .req p{margin:0;font-size:15px;line-height:1.45;overflow-wrap:anywhere}
+  .rid{display:inline-block;min-width:40px;font-size:12px;color:var(--quiet);font-weight:750}
+  .btn-soft{appearance:none;height:38px;padding:0 15px;border-radius:999px;border:0;background:var(--soft);color:var(--tx);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .gate{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--line)}
+  .whead+.gate{border-top:0;padding-top:0}
+  .gi{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .gi.ok{background:var(--done);color:#fff}
+  .gi.wait{color:var(--quiet);border:1.5px dashed var(--idle)}
+  .gi.warn{background:var(--now);color:var(--now-on)}
+  .gi.bad{background:var(--bad);color:#fff}
+  .gt{font-size:15px;font-weight:650;line-height:1.35}
+  .gs{font-size:13px;color:var(--mut);margin-top:2px;line-height:1.45;overflow-wrap:anywhere}
+  .gk{font-size:12px;font-weight:750;color:var(--quiet);padding-top:3px}
+  .ev{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:11px;align-items:start;padding:9px 0;font-size:14px;line-height:1.45;border-top:1px solid var(--line)}
+  .whead+.ev{border-top:0;padding-top:0}
+  .ei{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--inset);color:var(--mut)}
+  .ev>span{padding-top:2px;overflow-wrap:anywhere}
+  .ev em{font-style:normal;font-size:12.5px;color:var(--quiet);white-space:nowrap;padding-top:3px}
+  .need{padding:13px 0;border-top:1px solid var(--line)}
+  .whead+.need{border-top:0;padding-top:0}
+  .nh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:15px;font-weight:650}
+  .nh span{font-size:14px;font-weight:600;color:var(--mut)}
+  .keys{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .key{font-size:12.5px;padding:5px 9px;border-radius:9px;background:var(--inset);color:var(--tx2);overflow-wrap:anywhere}
+  .nl{margin:8px 0 0;padding:0;list-style:none;font-size:14px;color:var(--tx2);line-height:1.45}
+  .nl li{overflow-wrap:anywhere}
+  .nl li+li{margin-top:7px}
+  .nl.n0{margin-top:0}
+  .nl+.btn-soft{margin-top:12px}
+  .prep{border:2px solid var(--now)}
+  .prep .wt i{width:28px;height:28px;border-radius:8px;background:var(--now);color:var(--now-on);display:inline-flex;align-items:center;justify-content:center}
+  .blind-top{display:flex;align-items:center;gap:18px;margin-bottom:6px;flex-wrap:wrap}
+  .blind-top b{font-size:38px;font-weight:700;letter-spacing:-.04em;line-height:1}
+  .blind-top b small{font-size:17px;color:var(--mut);font-weight:600;margin-left:4px}
+  .blind-top p{margin:0;flex:1 1 260px;font-size:14px;line-height:1.5;color:var(--mut)}
+  .empty{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-radius:16px;border:1.5px dashed var(--idle);font-size:14.5px;line-height:1.5;color:var(--tx2)}
+  .empty .ic{color:var(--mut);margin-top:3px}
+  .muted{color:var(--mut);font-size:14px;line-height:1.5;margin:0}
+  footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;font-size:13px;color:var(--mut);padding:2px 4px 0}
+  footer code{font-size:12.5px;color:var(--tx2);overflow-wrap:anywhere}
+  .stale{color:var(--now-tx);font-weight:650}
+
+  /* Появление — только на первой отрисовке: страница перерисовывается на каждом событии. */
+  .boot .w{animation:rise .8s cubic-bezier(.16,1,.3,1) both}
+  @keyframes rise{from{transform:translateY(10px);opacity:.01}to{transform:none;opacity:1}}
+  @media (prefers-reduced-motion:reduce){.boot .w,.live,.stripes,.iconbtn.busy svg{animation:none}}
+
+  @media (max-width:1180px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:1040px){.cols{grid-template-columns:minmax(0,1fr)}}
+  /* Узкая панель рядом с чатом — главный способ смотреть дашборд. */
+  @media (max-width:900px){
+    body{font-size:14px}
+    .wrap{padding:14px 14px 28px;gap:12px}
+    .lost{padding:12px 14px 0}
+    .mark{font-size:20px}
+    .tabs button{height:30px;min-width:34px;padding:0 9px;font-size:12.5px}
+    .iconbtn{width:36px;height:36px}
+    .title h1{font-size:21px;letter-spacing:-.02em}
+    .meta{margin-top:8px;gap:6px}
+    .tag{height:24px;padding:0 9px;font-size:12px}
+    .meta .when{font-size:12.5px}
+    .card{padding:16px;border-radius:18px}
+    .wt{font-size:15px}
+    .whead{margin-bottom:12px}
+    .whead>span{font-size:12.5px}
+    .hero{padding:18px 18px 16px;border-radius:20px;gap:18px}
+    .hero-top{gap:14px;align-items:flex-start}
+    .hero-main{flex-basis:100%}
+    .state{font-size:12.5px;margin-bottom:8px}
+    .hero h2{font-size:21px;letter-spacing:-.02em;max-width:none}
+    .lead{font-size:14px;margin-top:8px}
+    .big{text-align:left}
+    .big b{font-size:30px;letter-spacing:-.03em}
+    .big b small{font-size:15px}
+    .big>span{font-size:12.5px;margin-top:4px}
+    .hint{font-size:13.5px;margin-top:12px;padding:8px 14px;min-height:38px}
+    .track{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 4px}
+    .seg{height:8px;border-radius:3px}
+    .s-name{font-size:12px;margin-top:6px}
+    .s-time{font-size:11.5px}
+    .tiles{gap:12px}
+    .tile{padding:14px;gap:8px}
+    .tk{font-size:12.5px}
+    .tv{font-size:24px;letter-spacing:-.03em}
+    .tv small{font-size:13px}
+    .ts{font-size:12px}
+    .stack{height:7px}
+    .sq{gap:4px}.sq i{width:13px;height:13px;border-radius:4px}
+    .okb{height:22px;font-size:11.5px;padding:0 8px}
+    .lg{height:26px;font-size:12px;padding:0 9px 0 8px}
+    .wave{font-size:11px;margin:14px 0 6px}
+    .wave span{font-size:12px}
+    .tl{grid-template-columns:22px minmax(0,1fr) 44px;gap:3px 8px;margin-bottom:5px}
+    .tl-id{font-size:12.5px}
+    .bar{height:32px;border-radius:9px;font-size:13px;padding:0 4px 0 11px;gap:6px}
+    .chipin{height:24px;padding:0 7px;font-size:11.5px}
+    .chipin .lbl{display:none}
+    .tl-time{font-size:12px}
+    .tl-note{font-size:12.5px}
+    .req{padding:10px 0;gap:10px}
+    .req p{font-size:13.5px}
+    .rid{min-width:34px;font-size:11.5px}
+    .gate{grid-template-columns:26px minmax(0,1fr) auto;padding:10px 0;gap:10px}
+    .gi{width:26px;height:26px}
+    .gt{font-size:13.5px}.gs{font-size:12px}
+    .ev{grid-template-columns:22px minmax(0,1fr) auto;font-size:13px;gap:9px}
+    .ei{width:22px;height:22px;border-radius:7px}
+    .nh{font-size:13.5px}.nl{font-size:13px}
+    .key{font-size:11.5px}
+    .btn-soft{height:32px;font-size:12.5px}
+    .blind-top b{font-size:26px}
+    .empty{font-size:13.5px;padding:12px 14px}
+    footer{font-size:12px}
+  }
+  @media (max-width:440px){
+    .hero h2{font-size:19px}
+    .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .tv{font-size:22px}
+  }
+</style>
+</head>
+<body>
+<!-- Плашка обрыва связи вне #app: render() переписывает #app целиком. -->
+<div class="lost" hidden><div id="link" role="status"></div></div>
 <div class="wrap" id="app"></div>
 
 <script src="state.js"></script>
 <script>
 "use strict";
 
-/* ---------- словарь ---------- */
-const DICT = {
-  ru:{
-    code:"ru", none:"—", empty:"пусто",
-    progress:"Прогресс", progressSub:(a,b)=>`пройдено этапов ${a} из ${b}`,
-    coverage:"Покрытие запроса", coverageSub:(d,f,p)=>`снято ${d} · отложено ${f} · заглушек ${p}`,
-    reqOf:(a,b)=>`закрыто ${a} из ${b} требований`,
-    stageNow:"Этап сейчас", elapsed:"Прошло", left:"Осталось (оценка)",
-    early:"рано считать", needTwo:"нужно 2 закрытых задачи",
-    critpath:n=>`критический путь: ${n} в цепочке`,
-    tasks:"Задачи", tasksSub:p=>`${p}% готово`,
-    noSplit:"без разбивки", notCut:"ещё не нарезаны",
-    debt:"Долг", debtSub:(a,b,c)=>`заглушек ${a} · решений за тебя ${b} · переменных ${c}`,
-    tests:"Тесты", testsSub:"последний полный прогон", failed:n=>`упало ${n}`,
-    stages:"Этапы", flow:"Ход работы", table:"Задачи — детально",
-    stageName:{preflight:"Подготовка",manifest:"Требования",briefing:"Брифинг",
-      spec:"PRD и спеки",plan:"План задач",build:"Разработка",review:"Код-ревью",final:"Приёмка"},
-    st:{pending:"не начат",active:"идёт",done:"пройден",skipped:"пропущен",failed:"остановлен"},
-    phase:{"in-progress":"пишется",review:"ревью",repair:"ремонт"},
-    tstatus:{pending:"ждёт","in-progress":"пишется",review:"на ревью",repair:"в ремонте",
-      done:"готово",failed:"упало"},
-    wave:(n,c)=>c>1?`Волна ${n} — ${c} задач параллельно`:`Волна ${n}`,
-    chip:{done:n=>`готово ${n}`,"in-progress":n=>`пишутся ${n}`,review:n=>`на ревью ${n}`,
-      repair:n=>`в ремонте ${n}`,pending:n=>`ждут ${n}`,failed:n=>`упало ${n}`},
-    nowLbl:"Сейчас:", nowIdle:"Ни одна задача не запущена.",
-    g2:(f,x)=>`сверка: найдено ${f}, закрыто ${x}`,
-    onePass:"Один заход — ярус T0, без разбивки на задачи",
-    noTasks:"Задач пока нет — идёт подготовка.",
-    thN:"#", thTitle:"Задача", thReq:"Требования", thState:"Статус", thTime:"Время",
-    thRetry:"Повт.", thTests:"Тесты", thCommit:"Коммит",
-    toClose:"Что осталось закрыть", placeholders:"Заглушки — нужны твои данные",
-    assumptions:"Решения, принятые за тебя", envVars:"Переменные окружения",
-    additions:"Добавлено сверх заказанного", concerns:"Отложенные замечания",
-    blind:"Слепая приёмка", blindOk:"Расхождений нет.", blindBad:"Расхождения:",
-    blindV:(m,c)=>`${m} из ${c} требований подтверждено`,
-    polish:"Доводка", polishSub:(r,f)=>`кругов ${r} · различий устранено ${f}`,
-    updated:"Обновлено", filesIn:"Документы —", branch:"Ветка",
-    finished:"Работа закончена", mode:"режим", depth:"глубина",
-    modes:{full:"полный автомат",semi:"полуавтомат",interview:"интервью",manual:"ручной"},
-    depths:{strict:"строго по запросу",normal:"обычная глубина",deep:"максимальная глубина"},
-    polishBadge:"доводка", tier:t=>`ярус ${t}`,
-    autoOn:"Автообновление включено", autoOff:"Автообновление выключено",
-    themeLight:"Светлая тема", themeDark:"Тёмная тема",
-    secs:n=>`${n} сек`, mins:n=>`${n} мин`, hrs:(h,m)=>`${h} ч ${m} мин`,
-    agoS:n=>`${n} сек назад`, agoM:n=>`${n} мин назад`, agoH:(h,m)=>`${h} ч ${m} мин назад`,
-    noState:"Состояние ещё не прочитано",
-    noStateWhy:"Файл <code>state.js</code> не загрузился или не присвоил <code>window.STATE</code>. " +
-      "Если работа только началась — он появится сам."
-  },
-  en:{
-    code:"en", none:"—", empty:"none",
-    progress:"Progress", progressSub:(a,b)=>`${a} of ${b} stages done`,
-    coverage:"Request coverage", coverageSub:(d,f,p)=>`dropped ${d} · deferred ${f} · stubs ${p}`,
-    reqOf:(a,b)=>`${a} of ${b} requirements closed`,
-    stageNow:"Current stage", elapsed:"Elapsed", left:"Remaining (estimate)",
-    early:"too early", needTwo:"needs 2 finished tasks",
-    critpath:n=>`critical path: ${n} deep`,
-    tasks:"Tasks", tasksSub:p=>`${p}% done`,
-    noSplit:"no split", notCut:"not cut yet",
-    debt:"Debt", debtSub:(a,b,c)=>`stubs ${a} · assumptions ${b} · variables ${c}`,
-    tests:"Tests", testsSub:"last full run", failed:n=>`${n} failed`,
-    stages:"Stages", flow:"Progress", table:"Tasks — detail",
-    stageName:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",
-      spec:"PRD & specs",plan:"Task plan",build:"Development",review:"Code review",final:"Acceptance"},
-    st:{pending:"not started",active:"running",done:"done",skipped:"skipped",failed:"stopped"},
-    phase:{"in-progress":"writing",review:"review",repair:"repair"},
-    tstatus:{pending:"waiting","in-progress":"writing",review:"in review",repair:"in repair",
-      done:"done",failed:"failed"},
-    wave:(n,c)=>c>1?`Wave ${n} — ${c} tasks in parallel`:`Wave ${n}`,
-    chip:{done:n=>`done ${n}`,"in-progress":n=>`writing ${n}`,review:n=>`in review ${n}`,
-      repair:n=>`in repair ${n}`,pending:n=>`waiting ${n}`,failed:n=>`failed ${n}`},
-    nowLbl:"Now:", nowIdle:"No task is running.",
-    g2:(f,x)=>`coverage check: found ${f}, closed ${x}`,
-    onePass:"Single pass — tier T0, no task split",
-    noTasks:"No tasks yet — still preparing.",
-    thN:"#", thTitle:"Task", thReq:"Requirements", thState:"Status", thTime:"Time",
-    thRetry:"Retry", thTests:"Tests", thCommit:"Commit",
-    toClose:"Still open", placeholders:"Stubs — your data needed",
-    assumptions:"Decided for you", envVars:"Environment variables",
-    additions:"Added beyond the request", concerns:"Deferred findings",
-    blind:"Blind acceptance", blindOk:"No disagreements.", blindBad:"Disagreements:",
-    blindV:(m,c)=>`${m} of ${c} requirements confirmed`,
-    polish:"Polish", polishSub:(r,f)=>`rounds ${r} · differences fixed ${f}`,
-    updated:"Updated", filesIn:"Documents —", branch:"Branch",
-    finished:"Finished", mode:"mode", depth:"depth",
-    modes:{full:"fully automatic",semi:"semi-automatic",interview:"interview",manual:"manual"},
-    depths:{strict:"strict",normal:"normal depth",deep:"maximum depth"},
-    polishBadge:"polish", tier:t=>`tier ${t}`,
-    autoOn:"Auto-refresh on", autoOff:"Auto-refresh off",
-    themeLight:"Light theme", themeDark:"Dark theme",
-    secs:n=>`${n} s`, mins:n=>`${n} min`, hrs:(h,m)=>`${h} h ${m} min`,
-    agoS:n=>`${n} s ago`, agoM:n=>`${n} min ago`, agoH:(h,m)=>`${h} h ${m} min ago`,
-    noState:"State not read yet",
-    noStateWhy:"<code>state.js</code> did not load or did not assign <code>window.STATE</code>. " +
-      "If the run just started it will appear on its own."
-  }
-};
+const STAGE_IDS = ["preflight","manifest","briefing","spec","plan","build","review","final"];
+const POLL_MS = 10000;
+/* Промежуток между отметками длиннее порога — простой, а не работа. Задача пишет state.js
+   только на старте и на коммите, и в прогонах prd между ними обычно 45-75 минут работы. */
+const IDLE_CAP_MS = 90 * 60e3;
+/* Приёмка (final) растёт с числом задач: по 12 прогонам prd на 10.2026 четыре задачи — 9-26 мин
+   активного времени, 11-18 задач — 25-144 мин. Отсюда около пяти минут на задачу. */
+const finalTailMin = n => Math.min(90, Math.max(10, 5 * n));
 
-const STAGE_ORDER = ["preflight","manifest","briefing","spec","plan","build","review","final"];
-const STAGE_WEIGHT = {preflight:3,manifest:5,briefing:7,spec:15,plan:8,build:40,review:12,final:10};
+const IC = {
+  check:"M20 6 9 17l-5-5",
+  clock:"M12 6v6h4M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
+  rotate:"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5",
+  pen:"M12 20h9M16.38 3.62a1 1 0 0 1 3 3L7.37 18.64a2 2 0 0 1-.86.5l-2.87.84a.5.5 0 0 1-.62-.62l.84-2.87a2 2 0 0 1 .5-.86z",
+  play:"M6 4l13 8-13 8V4z",
+  list:"M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+  shield:"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zM9 12l2 2 4-4",
+  msg:"M7.9 20A9 9 0 1 0 4 16.1L2 22Z",
+  alert:"M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0M12 8v4M12 16h.01",
+  x:"M18 6 6 18M6 6l12 12",
+  flag:"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
+  chev:"m9 18 6-6-6-6",
+  up:"m18 15-6-6-6 6",
+  hourglass:"M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2",
+  sun:"M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41",
+  moon:"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z",
+  sync:"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5"
+};
+const ic = (n, cls) => `<svg class="ic${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
+
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const zad = n => `${n} ${plural(n, "задача", "задачи", "задач")}`;
+const en = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const q = (s, lang) => lang === "en" ? `"${s}"` : `«${s}»`;
+
+const I18N = {
+  ru:{lang:"ru", of:"из", locale:"ru-RU",
+    stages:{preflight:"Подготовка",manifest:"Требования",briefing:"Брифинг",spec:"PRD и спеки",
+      plan:"План задач",build:"Разработка",review:"Код-ревью",final:"Приёмка"},
+    modes:{full:"Полный автомат",semi:"Полуавтомат",interview:"Интервью",manual:"Ручной режим"},
+    depths:{strict:"Строго по запросу",normal:"Обычная глубина",deep:"Максимальная глубина"},
+    tier:t=>`Ярус ${t}`, polishTag:"Доводка",
+    started:t=>`начата ${t}`, startedRange:(a,b)=>`${a} — ${b}`, today:"сегодня в",
+    refresh:"Обновить сейчас", langLabel:"Язык", themeLabel:"Тема", themeLight:"Светлая тема", themeDark:"Тёмная тема",
+    lost:"Связь с дашбордом пропала — на экране последнее, что он успел получить. Так бывает, когда компьютер засыпает или сессия закрылась. Скажи агенту «подними дашборд»: страница подхватит сервер сама, перезагружать её не нужно.",
+    stateRun:{preflight:"Идёт подготовка",manifest:"Разбор требований",briefing:"Идёт брифинг",spec:"Пишется PRD",
+      plan:"Составляется план",build:"Идёт разработка",review:"Идёт код-ревью",final:"Идёт приёмка"},
+    h2Run:{preflight:"Готовлю репозиторий и дашборд",manifest:"Разбираю запрос на требования — слово в слово",
+      briefing:"Ищу в запросе то, что решать тебе",spec:"Пишу PRD и дельты спек по твоим словам",
+      plan:"Режу PRD на задачи",build:"Пишу код",review:"Проверяю задачи",final:"Проверяю результат вслепую и собираю отчёт"},
+    leadRun:{preflight:"Дальше запрос разрежется на требования, и ни одно не потеряется до конца работы.",
+      manifest:"Каждое требование хранит твои точные слова — по ним работу проверят в конце.",
+      briefing:"Если найдётся развилка, которую решать тебе, вопрос придёт в чат.",
+      spec:"Потом независимый читатель сверит PRD с запросом — без моих пересказов.",
+      plan:"Каждое требование попадёт в задачу, и каждая задача — от требования.",
+      build:"", review:"Каждую задачу смотрит свежий ревьюер.",
+      final:"Проверяющий получает только твой запрос и чистую копию репозитория."},
+    buildH2:(d,n,r)=>d ? `Сдано ${d} ${plural(d,"задача","задачи","задач")} из ${n}${r ? `, ещё ${r} в работе` : ""}`
+      : `${zad(n)} в плане${r ? `, ${r} уже в работе` : ""}`,
+    buildAllDone:n=>`Все ${zad(n)} сданы`,
+    singleH2:"Один заход — без разбивки на задачи",
+    leadWriting:l=>`Пишется ${l}.`, leadReview:l=>`На ревью: ${l}.`, leadRepair:l=>`В ремонте после ревью: ${l}.`,
+    leadFailed:l=>`Не собралась: ${l}.`, leadIdle:"Следующая волна вот-вот уйдёт.",
+    waitState:"Работа ждёт тебя",
+    waitH2:{briefing:"Ответь в чате на вопросы брифинга",spec:"Посмотри PRD и скажи «ок»",
+      plan:"Посмотри план и скажи «ок»",action:"Нужно твоё решение перед необратимым шагом",stop:"Работа остановлена — нужен ты"},
+    waitHint:"Ответ — в чате. Дальше работа пойдёт сама", waitBig:"ждём ответа · часы работы стоят",
+    failState:"Работа остановилась", failH2:n=>`Этап «${n}» не прошёл`,
+    doneState:"Сдано", doneDefault:"Работа сдана",
+    doneNeed:(k,p)=>`Для настоящего запуска ${[k ? `впиши <b>${k} ${plural(k,"переменную","переменные","переменных")}</b> окружения` : "",
+      p ? `замени <b>${p} ${plural(p,"заглушку","заглушки","заглушек")}</b> своими данными` : ""].filter(Boolean).join(" и ")}.`,
+    doneNothing:"От тебя ничего не нужно — можно пользоваться.",
+    doneBig:t=>`в работе · сдано в ${t}`,
+    etaLbl:"осталось — с приёмкой", etaLate:"осталось — до сдачи", stageClock:n=>`на этапе «${n}»`,
+    paused:"пауза — часы стоят", min:"мин", hr:"ч",
+    ahead:"впереди", skipped:"пропущен", failedSt:"не прошёл", waitingSt:"ждём ответа",
+    tReqs:"Требования", tTickets:"Задачи", tTests:"Тесты", tTime:"В работе", tBlind:"Слепая приёмка",
+    reqParts:{done:"сделано",work:n=>`${n} в работе`,open:n=>`${n} ${plural(n,"разбирается","разбираются","разбираются")}`,
+      ph:n=>`${n} ${plural(n,"ждёт","ждут","ждут")} твоих данных`,def:n=>`${n} отложено`,drop:n=>`${n} снято тобой`},
+    reqLater:"появятся после разбора запроса",
+    tkParts:{now:n=>`пишется ${n}`,rev:n=>`ревью ${n}`,fix:n=>`ремонт ${n}`,bad:n=>`упало ${n}`,
+      all:"все сданы",retry:n=>`${n} ${plural(n,"перезапуск","перезапуска","перезапусков")}`,
+      repair:n=>`${n} ${plural(n,"ремонт","ремонта","ремонтов")}`},
+    tkLater:"появятся после плана", noSplit:"без разбивки",
+    testsOk:"0 упало", testsBad:n=>`${n} упало`, testsSub:"последний полный прогон", testsFinal:"финальный прогон",
+    testsLater:"появятся с первой задачей",
+    timeSub:"без простоев и ожидания ответа", median:m=>`задача в среднем ${m} мин`,
+    blindSub:m=>m ? `${m} ${plural(m,"расхождение","расхождения","расхождений")}` : "расхождений нет",
+    build:"Ход работы",
+    kinds:{done:"готово",now:"пишется",rev:"ревью",fix:"ремонт",bad:"упало",wait:"ждёт"},
+    chip:{done:"сдана",now:"пишется",rev:"ревью",fix:"ремонт",bad:"не собралась",wait:"ждёт"},
+    wave:n=>`Волна ${n}`, waveSub:c=>`- ${zad(c)} параллельно`,
+    waveWaits:l=>`- ждёт ${l.length > 1 ? "задачи" : "задачу"} ${l.join(", ")}`,
+    noteRepair:r=>`Ревью вернуло: ${r}`,
+    noTickets:"Задачи появятся после PRD и плана. Разработка пойдёт сама.",
+    single:(f,c)=>`Ярус T0 — один заход без разбивки на задачи${f ? ` · ${f} ${plural(f,"файл","файла","файлов")}` : ""}${c ? ` · коммит <code>${c}</code>` : ""}`,
+    gates:"Проверки", gatesOf:n=>`${n} из 4`,
+    gT:{G1:"Запрос разобран до конца",G2:"PRD ничего не потерял",G3:"Каждое требование — в задаче",G4:"Слепая приёмка"},
+    g1ok:"У каждого требования есть статус", g1ask:"Ждёт твоих ответов в чате", g1later:"Впереди: после брифинга",
+    g2:(f,x,d)=>f ? `Независимый читатель нашёл ${f} ${plural(f,"пропуск","пропуска","пропусков")}: ${x} закрыто, ${d} отложено`
+      : "Независимый читатель пропусков не нашёл",
+    g2miss:"Сверка не записана — гейт пропущен", g2later:"Впереди: независимый читатель сверит PRD с запросом",
+    g3ok:(r,t)=>`${r} ${plural(r,"требование","требования","требований")} разложено на ${t} ${plural(t,"задачу","задачи","задач")}`,
+    g3t0:"Ярус T0 — плана нет, работа одним заходом", g3later:"Впереди, на этапе плана",
+    g4:(m,c,x)=>`${m} из ${c} подтверждено${x ? ` · ${x} ${plural(x,"расхождение","расхождения","расхождений")}` : ""}`,
+    g4later:"В конце: чистая копия, проверка по запросу без PRD", gNone:"Не отмечено в этой работе",
+    gFail:"Не прошёл — фаза переделывается",
+    feed:"Лента",
+    need:"Понадобится от тебя", prep:"Перед запуском — от тебя",
+    envKeys:"Переменные окружения", placeholders:"Заглушки — нужны твои данные", assumptions:"Решения, принятые за тебя",
+    needEmpty:"Пока ничего. Переменные, заглушки и решения за тебя появятся здесь по ходу работы.",
+    blind:"Слепая приёмка", blindNote:"Проверяющий видел только твой запрос и готовый код — без PRD.",
+    blindBad:"Вот где он не согласился:", blindOk:"Расхождений с запросом нет.",
+    concerns:"Отложенные замечания", concernsNote:"Не мешают работе — оставлены с адресом в коде.",
+    additions:"Добавлено сверх заказанного",
+    polish:"Доводка", polishSub:(r,f)=>`${r} ${plural(r,"круг","круга","кругов")} · устранено различий: ${f}`,
+    more:n=>`Ещё ${n}`, collapse:"Свернуть",
+    updated:"Обновлено", filesIn:"Документы -", branch:"Ветка", stand:"Стенд",
+    frozen:"Работа сдана — дашборд больше не обновляется",
+    ago:{s:s=>`${s} сек назад`,m:m=>`${m} мин назад`,h:(h,m)=>`${h} ч ${m} мин назад`},
+    agoShort:{s:"сейчас",m:m=>`${m} мин`,h:h=>`${h} ч`},
+    ev:{init:"Работа начата", finish:"Работа сдана",
+      stage:{start:n=>`Начат этап «${n}»`,done:(n,x)=>`Пройден этап «${n}»${x ? ": " + x : ""}`,
+        skip:(n,x)=>`Этап «${n}» пропущен${x ? ": " + x : ""}`,fail:(n,x)=>`Этап «${n}» не прошёл${x ? ": " + x : ""}`},
+      start:ids=>ids.length > 1 ? `Ушла волна: ${ids.join(", ")}` : `Задача ${ids[0]} начата`,
+      done:(id,t)=>`Задача ${id} сдана${t ? ` · ${t.passed || 0} ${plural(t.passed || 0,"тест","теста","тестов")}${t.failed ? `, ${t.failed} упало` : ""}` : ""}`,
+      fail:id=>`Задача ${id} не собралась`,
+      ask:x=>`Ждём тебя${x ? ": " + x : ""}`, answered:"Ответ получен — работа идёт дальше"},
+    boot:"Дашборд ещё не прочитал состояние",
+    bootWhy:"Файл <code>state.js</code> рядом не загрузился или не присвоил <code>window.STATE</code>: работа только началась, либо файл помялся.",
+    bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Саму работу это не затрагивает.",
+    tabWait:"● Ждём ответа"},
+  en:{lang:"en", of:"of", locale:"en-GB",
+    stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"PRD & specs",
+      plan:"Task plan",build:"Development",review:"Code review",final:"Acceptance"},
+    modes:{full:"Fully automatic",semi:"Semi-automatic",interview:"Interview",manual:"Manual"},
+    depths:{strict:"Strictly as asked",normal:"Normal depth",deep:"Maximum depth"},
+    tier:t=>`Tier ${t}`, polishTag:"Polish",
+    started:t=>`started ${t}`, startedRange:(a,b)=>`${a} — ${b}`, today:"today at",
+    refresh:"Refresh now", langLabel:"Language", themeLabel:"Theme", themeLight:"Light theme", themeDark:"Dark theme",
+    lost:"The dashboard lost its connection — the screen shows the last state it received. This happens when the computer sleeps or the session ends. Ask the agent to bring the dashboard back up: the page picks the server up by itself, no reload needed.",
+    stateRun:{preflight:"Preflight",manifest:"Reading the request",briefing:"Briefing",spec:"Writing the PRD",
+      plan:"Planning",build:"Development",review:"Code review",final:"Acceptance"},
+    h2Run:{preflight:"Setting up the repo and the dashboard",manifest:"Cutting the request into requirements, word for word",
+      briefing:"Looking for what is yours to decide",spec:"Writing the PRD and spec deltas from your words",
+      plan:"Cutting the PRD into tasks",build:"Writing code",review:"Reviewing tasks",final:"Checking the result blind and writing the report"},
+    leadRun:{preflight:"Next, the request becomes requirements, and none of them gets lost before the end.",
+      manifest:"Every requirement keeps your exact words — the work is checked against them at the end.",
+      briefing:"If there is a fork that is yours to decide, the question will come to the chat.",
+      spec:"An independent reader will check the PRD against the request — without my paraphrase.",
+      plan:"Every requirement goes into a task, and every task traces to a requirement.",
+      build:"", review:"Every task gets a fresh reviewer.",
+      final:"The checker gets only your request and a clean copy of the repo."},
+    buildH2:(d,n,r)=>d ? `${d} of ${n} tasks done${r ? `, ${r} more in progress` : ""}` : `${en(n,"task","tasks")} planned${r ? `, ${r} already in progress` : ""}`,
+    buildAllDone:n=>`All ${en(n,"task","tasks")} done`,
+    singleH2:"A single pass — no task split",
+    leadWriting:l=>`Writing ${l}.`, leadReview:l=>`In review: ${l}.`, leadRepair:l=>`Back from review for repair: ${l}.`,
+    leadFailed:l=>`Failed: ${l}.`, leadIdle:"The next wave is about to go.",
+    waitState:"The work is waiting for you",
+    waitH2:{briefing:"Answer the briefing questions in the chat",spec:"Look at the PRD and say \"ok\"",
+      plan:"Look at the plan and say \"ok\"",action:"Your call is needed before an irreversible step",stop:"The work has stopped — you are needed"},
+    waitHint:"Answer in the chat. The work carries on by itself", waitBig:"waiting for you · the clock is stopped",
+    failState:"The work has stopped", failH2:n=>`Stage "${n}" failed`,
+    doneState:"Done", doneDefault:"The work is done",
+    doneNeed:(k,p)=>`To run it for real, ${[k ? `set <b>${en(k,"environment variable","environment variables")}</b>` : "",
+      p ? `replace <b>${en(p,"placeholder","placeholders")}</b> with your data` : ""].filter(Boolean).join(" and ")}.`,
+    doneNothing:"Nothing is needed from you — it is ready to use.",
+    doneBig:t=>`working time · done at ${t}`,
+    etaLbl:"left — with acceptance", etaLate:"left — until done", stageClock:n=>`in "${n}"`,
+    paused:"paused — the clock is stopped", min:"min", hr:"h",
+    ahead:"ahead", skipped:"skipped", failedSt:"failed", waitingSt:"waiting for you",
+    tReqs:"Requirements", tTickets:"Tasks", tTests:"Tests", tTime:"Working time", tBlind:"Blind acceptance",
+    reqParts:{done:"done",work:n=>`${n} in progress`,open:n=>`${n} being read`,ph:n=>`${n} need your data`,
+      def:n=>`${n} deferred`,drop:n=>`${n} dropped by you`},
+    reqLater:"appear once the request is read",
+    tkParts:{now:n=>`writing ${n}`,rev:n=>`review ${n}`,fix:n=>`repair ${n}`,bad:n=>`failed ${n}`,
+      all:"all done",retry:n=>en(n,"restart","restarts"),repair:n=>en(n,"repair","repairs")},
+    tkLater:"appear after the plan", noSplit:"no split",
+    testsOk:"0 failed", testsBad:n=>`${n} failed`, testsSub:"last full run", testsFinal:"final run",
+    testsLater:"appear with the first task",
+    timeSub:"no idle time, no waiting for you", median:m=>`about ${m} min per task`,
+    blindSub:m=>m ? en(m,"disagreement","disagreements") : "no disagreements",
+    build:"Progress",
+    kinds:{done:"done",now:"writing",rev:"review",fix:"repair",bad:"failed",wait:"waiting"},
+    chip:{done:"done",now:"writing",rev:"review",fix:"repair",bad:"failed",wait:"waiting"},
+    wave:n=>`Wave ${n}`, waveSub:c=>`- ${c} tasks in parallel`, waveWaits:l=>`- waits for ${l.join(", ")}`,
+    noteRepair:r=>`Review sent back: ${r}`,
+    noTickets:"Tasks appear after the PRD and the plan. Development starts by itself.",
+    single:(f,c)=>`Tier T0 — a single pass, no tasks${f ? ` · ${en(f,"file","files")}` : ""}${c ? ` · commit <code>${c}</code>` : ""}`,
+    gates:"Checks", gatesOf:n=>`${n} of 4`,
+    gT:{G1:"The request is fully read",G2:"The PRD lost nothing",G3:"Every requirement is in a task",G4:"Blind acceptance"},
+    g1ok:"Every requirement has a status", g1ask:"Waiting for your answers in the chat", g1later:"Ahead: after the briefing",
+    g2:(f,x,d)=>f ? `An independent reader found ${en(f,"gap","gaps")}: ${x} closed, ${d} deferred` : "An independent reader found no gaps",
+    g2miss:"Check not recorded — the gate was skipped", g2later:"Ahead: an independent reader checks the PRD against the request",
+    g3ok:(r,t)=>`${en(r,"requirement","requirements")} laid out in ${en(t,"task","tasks")}`,
+    g3t0:"Tier T0 — no plan, a single pass", g3later:"Ahead, at the plan",
+    g4:(m,c,x)=>`${m} of ${c} confirmed${x ? ` · ${en(x,"disagreement","disagreements")}` : ""}`,
+    g4later:"At the end: a clean copy, checked against the request without the PRD", gNone:"Not recorded in this run",
+    gFail:"Failed — the phase is being redone",
+    feed:"Feed",
+    need:"Needed from you", prep:"Before you run it",
+    envKeys:"Environment variables", placeholders:"Placeholders — your data needed", assumptions:"Decisions made for you",
+    needEmpty:"Nothing yet. Variables, placeholders and decisions made for you will show up here as the work goes.",
+    blind:"Blind acceptance", blindNote:"The checker saw only your request and the finished code — no PRD.",
+    blindBad:"Here is where it disagreed:", blindOk:"No disagreements with the request.",
+    concerns:"Deferred findings", concernsNote:"They do not block anything — kept with their place in the code.",
+    additions:"Added beyond the request",
+    polish:"Polish", polishSub:(r,f)=>`${en(r,"round","rounds")} · differences fixed: ${f}`,
+    more:n=>`${n} more`, collapse:"Collapse",
+    updated:"Updated", filesIn:"Documents -", branch:"Branch", stand:"Stand",
+    frozen:"The work is done — the dashboard no longer updates",
+    ago:{s:s=>`${s}s ago`,m:m=>`${m} min ago`,h:(h,m)=>`${h}h ${m}m ago`},
+    agoShort:{s:"now",m:m=>`${m} min`,h:h=>`${h} h`},
+    ev:{init:"Work started", finish:"Work done",
+      stage:{start:n=>`Stage "${n}" started`,done:(n,x)=>`Stage "${n}" passed${x ? ": " + x : ""}`,
+        skip:(n,x)=>`Stage "${n}" skipped${x ? ": " + x : ""}`,fail:(n,x)=>`Stage "${n}" failed${x ? ": " + x : ""}`},
+      start:ids=>ids.length > 1 ? `Wave out: ${ids.join(", ")}` : `Task ${ids[0]} started`,
+      done:(id,t)=>`Task ${id} done${t ? ` · ${en(t.passed || 0,"test","tests")}${t.failed ? `, ${t.failed} failed` : ""}` : ""}`,
+      fail:id=>`Task ${id} failed`,
+      ask:x=>`Waiting for you${x ? ": " + x : ""}`, answered:"Answer received — the work goes on"},
+    boot:"Dashboard has no state yet",
+    bootWhy:"<code>state.js</code> beside the page did not load or did not assign <code>window.STATE</code>: the run has just started, or the file got mangled.",
+    bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. The work itself is unaffected.",
+    tabWait:"● Waiting for you"}
+};
 
 /* ---------- настройки страницы ---------- */
 function store(k, v){
   try {
-    if (v !== undefined) localStorage.setItem(k, v);
+    if (v === null) localStorage.removeItem(k);
+    else if (v !== undefined) localStorage.setItem(k, v);
     return localStorage.getItem(k);
   } catch (e) { return null; }
 }
-let lang = (store("prd-lang") === "en") ? "en" : "ru";
-let theme = store("prd-theme") || "system";
-let auto = store("prd-auto") !== "off";
-let L = DICT[lang];
-
+/* Прошлая версия хранила здесь выключатель, который замораживал опрос навсегда. */
+store("prd-auto", null);
+let CUR = I18N[store("prd-lang") === "en" ? "en" : "ru"];
+const storedTheme = () => { const t = store("prd-theme"); return t === "light" || t === "dark" ? t : null; };
+const systemDark = () => { try { return matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; } };
+const effectiveTheme = () => storedTheme() || (systemDark() ? "dark" : "light");
 function applyTheme(){
-  if (theme === "system") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", theme);
+  const t = storedTheme();
+  if (t) document.documentElement.setAttribute("data-theme", t);
+  else document.documentElement.removeAttribute("data-theme");
 }
-function currentTheme(){
-  if (theme !== "system") return theme;
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
+const UI = {open: {}};
 
-/* ---------- мелочи ---------- */
-const esc = s => String(s == null ? "" : s)
-  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-const at = s => { const d = s ? new Date(s) : null; return d && !isNaN(d) ? d.getTime() : null; };
-const pct = (a, b) => b > 0 ? Math.max(0, Math.min(100, Math.round(a / b * 100))) : 0;
+/* ---------- время ---------- */
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const toMs = v => { const t = v ? new Date(v).getTime() : NaN; return isNaN(t) ? null : t; };
+const spanMs = (from, to) => {
+  const a = toMs(from);
+  if (a == null) return null;
+  return Math.max(0, (toMs(to) ?? Date.now()) - a);
+};
 
-function dur(ms){
-  if (ms == null || isNaN(ms) || ms < 0) return L.none;
-  const s = Math.floor(ms / 1000);
-  if (s < 90) return L.secs(s);
-  const m = Math.round(s / 60);
-  if (m < 60) return L.mins(m);
-  return L.hrs(Math.floor(m / 60), m % 60);
+/* Часы показывают работу, а не календарь: промежуток между соседними отметками режется
+   по порогу простоя, а ожидание ответа пользователя (waits, waiting) вычитается целиком. */
+let MARKS = [], WAITS = [];
+/* updatedAt перезаписывается, поэтому страница помнит увиденные значения сама. */
+function rememberBeats(S){
+  const key = "prd-beats:" + (S.slug || "") + ":" + (S.startedAt || "");
+  try {
+    const seen = JSON.parse(localStorage.getItem(key) || "[]");
+    if (S.updatedAt && seen.indexOf(S.updatedAt) === -1){
+      seen.push(S.updatedAt);
+      localStorage.setItem(key, JSON.stringify(seen.slice(-600)));
+    }
+    return seen;
+  } catch (e) { return []; }
 }
-function ago(ms){
-  const s = Math.floor(ms / 1000);
-  if (s < 90) return L.agoS(Math.max(0, s));
-  const m = Math.round(s / 60);
-  if (m < 60) return L.agoM(m);
-  return L.agoH(Math.floor(m / 60), m % 60);
+function collectMarks(S){
+  const out = [];
+  const push = v => { const t = toMs(v); if (t != null) out.push(t); };
+  push(S.startedAt); push(S.updatedAt); push(S.finishedAt);
+  rememberBeats(S).forEach(push);
+  (S.stages || []).forEach(x => { push(x.startedAt); push(x.finishedAt); });
+  (S.tickets || []).forEach(x => { push(x.startedAt); push(x.finishedAt); });
+  (S.waits || []).forEach(x => { push(x.from); push(x.to); });
+  if (S.waiting) push(S.waiting.since);
+  return Array.from(new Set(out)).sort((a, b) => a - b);
 }
-/* живые интервалы дорисовываются раз в секунду — так перерисовка не сбрасывает выделение текста */
-const live = (from, to) => `<span data-from="${esc(from || "")}" data-to="${esc(to || "")}">${
-  from ? dur((to ? at(to) : Date.now()) - at(from)) : L.none}</span>`;
-
-/* ---------- расчёты ---------- */
-function stageMap(S){
-  const m = {};
-  (S.stages || []).forEach(s => { m[s.id] = s; });
-  return m;
-}
-function taskShare(S){
-  const T = S.tickets || [];
-  if (!T.length) return (S.singlePass && S.singlePass.finishedAt) ? 1 : 0;
-  const done = T.filter(t => t.status === "done").length;
-  const half = T.filter(t => t.status === "review" || t.status === "repair").length;
-  return (done + half * 0.5) / T.length;
-}
-function overall(S){
-  const m = stageMap(S), share = taskShare(S);
-  let got = 0, all = 0;
-  STAGE_ORDER.forEach(id => {
-    const w = STAGE_WEIGHT[id];
-    all += w;
-    const st = m[id];
-    if (!st) return;
-    if (st.status === "done" || st.status === "skipped") got += w;
-    else if (st.status === "active") got += w * ((id === "build" || id === "review") ? share : 0.5);
+function collectWaits(S){
+  const out = [];
+  (S.waits || []).forEach(w => {
+    const a = toMs(w.from), b = toMs(w.to);
+    if (a != null && b != null && b > a) out.push([a, b]);
   });
-  return pct(got, all);
-}
-/* сколько задач ещё стоит в самой длинной цепочке зависимостей */
-function criticalPath(S){
-  const T = S.tickets || [];
-  const left = T.filter(t => t.status !== "done" && t.status !== "failed");
-  if (!left.length) return 0;
-  const by = {};
-  T.forEach(t => { by[t.id] = t; });
-  const memo = {};
-  const depth = id => {
-    if (memo[id] != null) return memo[id];
-    memo[id] = 1;
-    const t = by[id];
-    const ups = ((t && t.blockedBy) || []).filter(b => by[b] && by[b].status !== "done");
-    memo[id] = 1 + ups.reduce((mx, b) => Math.max(mx, depth(b)), 0);
-    return memo[id];
-  };
-  return left.reduce((mx, t) => Math.max(mx, depth(t.id)), 0);
-}
-function medianTask(S){
-  const spans = (S.tickets || [])
-    .filter(t => t.startedAt && t.finishedAt)
-    .map(t => at(t.finishedAt) - at(t.startedAt))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
-  if (spans.length < 2) return null;
-  const mid = Math.floor(spans.length / 2);
-  return spans.length % 2 ? spans[mid] : (spans[mid - 1] + spans[mid]) / 2;
-}
-
-/* ---------- куски разметки ---------- */
-function card(k, v, sub){
-  return `<div class="card"><div class="k">${k}</div><div class="v">${v}</div>` +
-    (sub ? `<div class="sub">${sub}</div>` : "") + "</div>";
-}
-function list(items){
-  if (!items || !items.length) return `<div class="empty">${L.empty}</div>`;
-  return `<ul class="plain">${items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
-}
-function stageRow(S, id){
-  const st = stageMap(S)[id] || { status: "pending" };
-  const time = st.startedAt ? live(st.startedAt, st.finishedAt) : "";
-  let note = st.note ? esc(st.note) : (L.st[st.status] || "");
-  /* результат независимой сверки виден там, где её проводили, — иначе о ней никто не узнает */
-  if (id === "spec" && S.coverage) note += " · " + L.g2(S.coverage.found || 0, S.coverage.fixed || 0);
-  return `<div class="stage"><span class="dot ${esc(st.status)}"></span>` +
-    `<span class="nm">${esc(L.stageName[id] || id)}</span>` +
-    `<span class="rest">${note}${time ? " · " + time : ""}</span></div>`;
-}
-function taskRow(t){
-  const cls = String(t.status || "pending").replace("in-progress", "inprogress");
-  const running = t.status === "in-progress" || t.status === "review" || t.status === "repair";
-  const phase = L.phase[t.status] ? `<span class="phase">${L.phase[t.status]}</span>` : "";
-  const time = t.startedAt ? live(t.startedAt, t.finishedAt) : "";
-  return `<div class="task"><span class="num">${esc(t.id)}</span>` +
-    `<span class="track ${t.status === "pending" ? "pending" : ""}">` +
-      `<span class="fill ${cls}"></span>` +
-      `<span class="lbl">${phase}${esc(t.title || "")}</span></span>` +
-    `<span class="t">${(running || t.finishedAt) ? time : ""}</span></div>`;
-}
-function flowBlock(S){
-  const T = S.tickets || [];
-  if (!T.length){
-    const sp = S.singlePass;
-    if (!sp) return `<div class="empty">${L.noTasks}</div>`;
-    return `<div class="card"><div class="k">${L.onePass}</div>` +
-      `<div class="sub">${live(sp.startedAt, sp.finishedAt)}` +
-      (sp.files ? ` · ${sp.files.length}` : "") +
-      (sp.commit ? ` · <code>${esc(sp.commit)}</code>` : "") + "</div></div>";
+  if (S.waiting && !S.finishedAt){
+    const a = toMs(S.waiting.since);
+    if (a != null) out.push([a, null]);
   }
-  /* сводка по состояниям: полосы показывают то же самое, но не отвечают «сколько сейчас» одним взглядом */
-  const order = ["in-progress", "review", "repair", "done", "pending", "failed"];
-  const chips = order
-    .map(st => [st, T.filter(t => t.status === st).length])
-    .filter(([, n]) => n > 0)
-    .map(([st, n]) => L.chip[st] ? L.chip[st](n) : `${st} ${n}`)
-    .join(" · ");
-
-  const running = T.filter(t => t.status === "in-progress" || t.status === "review" || t.status === "repair");
-  const now = running.length
-    ? `${L.nowLbl} ` + running.map(t => `${esc(t.id)} — ${esc(t.title || "")}`).join(" · ")
-    : L.nowIdle;
-
-  const waves = {};
-  T.forEach(t => {
-    const w = t.wave || 1;
-    (waves[w] = waves[w] || []).push(t);
+  return out;
+}
+function waitedIn(a, b){
+  let s = 0;
+  WAITS.forEach(([x, y]) => {
+    const hi = Math.min(b, y == null ? Date.now() : y), lo = Math.max(a, x);
+    if (hi > lo) s += hi - lo;
   });
-  return `<div class="card" style="margin-bottom:10px"><div class="k">${chips}</div>` +
-    `<div class="sub">${now}</div></div>` +
-    Object.keys(waves).sort((a, b) => a - b).map(w =>
-      `<div class="wave">${L.wave(w, waves[w].length)}</div>` +
-      waves[w].map(taskRow).join("")).join("");
+  return s;
 }
-function taskTable(S){
-  const T = S.tickets || [];
-  if (!T.length) return "";
-  const rows = T.map(t => {
-    const tests = t.tests ? `${t.tests.passed || 0}${t.tests.failed ? " / " + t.tests.failed : ""}` : L.none;
-    const again = (t.retries || 0) + (t.repairs || 0) + (t.handoffs || 0);
-    return "<tr>" +
-      `<td>${esc(t.id)}</td>` +
-      `<td class="wrapcell">${esc(t.title || "")}</td>` +
-      `<td>${esc((t.requirements || []).join(", ")) || L.none}</td>` +
-      `<td>${L.tstatus[t.status] || esc(t.status)}</td>` +
-      `<td>${t.startedAt ? live(t.startedAt, t.finishedAt) : L.none}</td>` +
-      `<td>${again || L.none}</td>` +
-      `<td>${tests}</td>` +
-      `<td>${t.commit ? `<code>${esc(t.commit)}</code>` : L.none}</td>` +
-      "</tr>";
-  }).join("");
-  return `<h2>${L.table}</h2><div class="scroll"><table><thead><tr>` +
-    `<th>${L.thN}</th><th>${L.thTitle}</th><th>${L.thReq}</th><th>${L.thState}</th>` +
-    `<th>${L.thTime}</th><th>${L.thRetry}</th><th>${L.thTests}</th><th>${L.thCommit}</th>` +
-    `</tr></thead><tbody>${rows}</tbody></table></div>`;
+function activeMs(from, to){
+  const a = toMs(from);
+  if (a == null) return null;
+  const b = toMs(to) ?? Date.now();
+  if (b <= a) return 0;
+  const pts = [a].concat(MARKS.filter(t => t > a && t < b), [b]);
+  let s = 0;
+  for (let i = 1; i < pts.length; i++){
+    const gap = pts[i] - pts[i - 1] - waitedIn(pts[i - 1], pts[i]);
+    s += Math.min(Math.max(0, gap), IDLE_CAP_MS);
+  }
+  return s;
 }
-function controls(){
-  const th = currentTheme();
-  return `<div class="segs">` +
-    `<div class="seg"><button type="button" data-auto aria-pressed="${auto}" ` +
-      `title="${auto ? L.autoOn : L.autoOff}">&#8635;</button></div>` +
-    `<div class="seg">` +
-      `<button type="button" data-theme="light" aria-pressed="${th === "light"}" title="${L.themeLight}">&#9788;</button>` +
-      `<button type="button" data-theme="dark" aria-pressed="${th === "dark"}" title="${L.themeDark}">&#9789;</button>` +
-    `</div>` +
-    `<div class="seg">` +
-      `<button type="button" data-lang="ru" aria-pressed="${lang === "ru"}">RU</button>` +
-      `<button type="button" data-lang="en" aria-pressed="${lang === "en"}">EN</button>` +
-    `</div></div>`;
-}
-
-/* ---------- сборка страницы ---------- */
-function render(){
-  const app = document.getElementById("app");
+function idleNow(){
   const S = window.STATE;
-  const head = `<div class="top"><div class="mark">Product Requirements Document</div>${controls()}</div>`;
-
-  if (!S || typeof S !== "object"){
-    app.innerHTML = head + `<div class="miss"><h1>${L.noState}</h1><p>${L.noStateWhy}</p></div>`;
-    bind();
-    return;
-  }
-
-  const T = S.tickets || [], R = S.requirements || {}, m = stageMap(S);
-  const now = S.finishedAt ? at(S.finishedAt) : Date.now();
-  const doneTasks = T.filter(t => t.status === "done").length;
-  const doneStages = STAGE_ORDER.filter(id => m[id] &&
-    (m[id].status === "done" || m[id].status === "skipped")).length;
-
-  /* покрытие считается против всех требований, кроме снятых пользователем */
-  const counted = Math.max(0, (R.total || 0) - (R.dropped || 0));
-  const done = overall(S);
-
-  /* оценка остатка: медиана задачи на длину критического пути, диапазоном */
-  const med = medianTask(S), path = criticalPath(S);
-  let leftText = L.early, leftSub = L.needTwo;
-  if (S.finishedAt){ leftText = L.finished; leftSub = ""; }
-  else if (med && path){
-    leftText = `${dur(med * path * 0.75)} … ${dur(med * path * 1.35)}`;
-    leftSub = L.critpath(path);
-  }
-
-  const active = STAGE_ORDER.filter(id => m[id] && m[id].status === "active");
-  const cur = active.length ? active[active.length - 1] : null;
-
-  const badges = [
-    S.mode ? `<span class="badge on">${L.mode}: ${L.modes[S.mode] || esc(S.mode)}</span>` : "",
-    S.depth ? `<span class="badge">${L.depth}: ${L.depths[S.depth] || esc(S.depth)}</span>` : "",
-    S.tier ? `<span class="badge">${L.tier(esc(S.tier))}</span>` : "",
-    S.polish ? `<span class="badge">${L.polishBadge}</span>` : ""
-  ].join("");
-
-  const debt = S.debt || {};
-  const dp = (debt.placeholders || []).length,
-        da = (debt.assumptions || []).length,
-        de = (debt.emptyEnv || []).length;
-
-  const tests = S.tests
-    ? `${S.tests.passed || 0}${S.tests.failed ? " · " + L.failed(S.tests.failed) : ""}`
-    : L.none;
-
-  const blind = S.blind ? `<h2>${L.blind}</h2><div class="card">` +
-    `<div class="v">${L.blindV(esc(S.blind.matched), esc(S.blind.checked))}</div>` +
-    ((S.blind.mismatches || []).length
-      ? `<div class="sub">${L.blindBad}</div>${list(S.blind.mismatches)}`
-      : `<div class="sub">${L.blindOk}</div>`) + "</div>" : "";
-
-  const rounds = (S.polish && S.polish.rounds) || [];
-  const polish = S.polish ? `<h2>${L.polish}</h2><div class="card">` +
-    `<div class="v">${rounds.length}</div><div class="sub">${
-      L.polishSub(rounds.length, rounds.reduce((n, r) => n + (r.accepted || 0), 0))}</div></div>` : "";
-
-  app.innerHTML = head +
-    `<h1>${esc(S.title || S.slug || "")}${S.prd ? " · " + esc(S.prd) : ""}</h1>` +
-    `<div class="badges">${badges}</div>` +
-
-    `<div class="headline"><div class="k">${L.progress}</div>` +
-      `<div class="n">${done}%</div>` +
-      `<div class="bar"><i style="width:${done}%"></i></div>` +
-      `<div class="sub">${L.progressSub(doneStages, STAGE_ORDER.length)}${
-        T.length ? " · " + L.tasksSub(pct(doneTasks, T.length)) : ""}</div></div>` +
-
-    `<div class="grid">` +
-      card(L.coverage, pct(R.done || 0, counted) + "%",
-        L.reqOf(R.done || 0, counted) + "<br>" +
-        L.coverageSub(R.dropped || 0, R.deferred || 0, R.placeholder || 0)) +
-      card(L.stageNow, cur ? esc(L.stageName[cur] || cur) : (S.finishedAt ? L.finished : L.none),
-        cur && m[cur].startedAt ? live(m[cur].startedAt, null) : "") +
-      card(L.elapsed, live(S.startedAt, S.finishedAt), "") +
-      card(L.left, leftText, leftSub) +
-      card(L.tasks,
-        T.length ? `${doneTasks} / ${T.length}` : (S.tier === "T0" ? L.noSplit : L.notCut),
-        T.length ? L.tasksSub(pct(doneTasks, T.length)) : "") +
-      card(L.debt, String(dp + da + de), L.debtSub(dp, da, de)) +
-      card(L.tests, tests, L.testsSub) +
-    "</div>" +
-
-    `<h2>${L.stages}</h2><div class="card">${STAGE_ORDER.map(id => stageRow(S, id)).join("")}</div>` +
-    `<h2>${L.flow}</h2>${flowBlock(S)}` +
-    taskTable(S) + blind + polish +
-
-    `<h2>${L.toClose}</h2><div class="grid">` +
-      `<div class="card"><div class="k">${L.placeholders}</div>${list(debt.placeholders)}</div>` +
-      `<div class="card"><div class="k">${L.assumptions}</div>${list(debt.assumptions)}</div>` +
-      `<div class="card"><div class="k">${L.envVars}</div>${list(debt.emptyEnv)}</div>` +
-      `<div class="card"><div class="k">${L.additions}</div>${list(S.additions)}</div>` +
-      `<div class="card"><div class="k">${L.concerns}</div>${list(S.concerns)}</div>` +
-    "</div>" +
-
-    `<div class="foot">` +
-      `<span data-updated="${esc(S.updatedAt || "")}" data-busy="${
-        T.some(t => t.status === "in-progress")}">${L.updated} ${
-        S.updatedAt ? ago(now - at(S.updatedAt)) : L.none}</span>` +
-      (S.docsPath ? `<span>${L.filesIn} <code>${esc(S.docsPath)}</code></span>` : "") +
-      (S.codeBranch ? `<span>${L.branch} <code>${esc(S.codeBranch)}</code></span>` : "") +
-    "</div>";
-
-  document.documentElement.lang = L.code;
-  bind();
+  if (!S || S.finishedAt || S.waiting) return false;
+  const last = MARKS.length ? MARKS[MARKS.length - 1] : null;
+  return last != null && Date.now() - last > IDLE_CAP_MS;
 }
-
-/* ---------- события ---------- */
-function bind(){
-  document.querySelectorAll("[data-lang]").forEach(b => {
-    b.onclick = () => { lang = b.dataset.lang; L = DICT[lang]; store("prd-lang", lang); render(); };
-  });
-  /* только кнопки: applyTheme вешает data-theme на <html>, и голый [data-theme]
-     ловил бы им же корень документа — тогда любой клик всплывал бы в этот обработчик */
-  document.querySelectorAll("button[data-theme]").forEach(b => {
-    b.onclick = () => {
-      theme = (theme === b.dataset.theme) ? "system" : b.dataset.theme;
-      store("prd-theme", theme);
-      applyTheme();
-      render();
-    };
-  });
-  const a = document.querySelector("[data-auto]");
-  if (a) a.onclick = () => { auto = !auto; store("prd-auto", auto ? "on" : "off"); render(); };
+const fmtClock = ms => {
+  if (ms == null) return "—";
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const p = n => String(n).padStart(2, "0");
+  return h ? `${h}:${p(m)}:${p(ss)}` : `${m}:${p(ss)}`;
+};
+const fmtDur = m => m == null ? "—"
+  : m < 60 ? m + " " + CUR.min : Math.floor(m / 60) + " " + CUR.hr + " " + String(m % 60).padStart(2, "0") + " " + CUR.min;
+const hhmm = iso => { const t = toMs(iso); if (t == null) return ""; const d = new Date(t);
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+/* Открытый интервал получает data-live — его раз в секунду обновляет tick(). */
+function timerHTML(from, to){
+  const ms = activeMs(from, to);
+  if (ms == null) return "—";
+  return to ? fmtClock(ms) : `<span data-live data-from="${esc(from)}">${fmtClock(ms)}</span>`;
 }
-
-/* ---------- живые часы ---------- */
-setInterval(() => {
-  const S = window.STATE;
-  const end = (S && S.finishedAt) ? at(S.finishedAt) : Date.now();
-  document.querySelectorAll("[data-from]").forEach(el => {
-    const f = el.dataset.from;
-    if (!f) return;
-    el.textContent = dur((el.dataset.to ? at(el.dataset.to) : end) - at(f));
+function agoText(iso){
+  const ms = spanMs(iso, null);
+  if (ms == null) return "—";
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return CUR.ago.s(s);
+  const m = Math.floor(s / 60);
+  return m < 60 ? CUR.ago.m(m) : CUR.ago.h(Math.floor(m / 60), m % 60);
+}
+function agoShort(iso){
+  const ms = spanMs(iso, null);
+  if (ms == null) return "";
+  const m = Math.floor(ms / 60000);
+  return m < 1 ? CUR.agoShort.s : m < 60 ? CUR.agoShort.m(m) : CUR.agoShort.h(Math.floor(m / 60));
+}
+function tick(){
+  const S = window.STATE || {};
+  const stopped = idleNow();
+  document.querySelectorAll("[data-live][data-from]").forEach(el => { el.textContent = fmtClock(activeMs(el.dataset.from, null)); });
+  document.querySelectorAll("[data-since]").forEach(el => { el.textContent = fmtClock(spanMs(el.dataset.since, null)); });
+  document.querySelectorAll("[data-idle-note]").forEach(el => { el.hidden = !stopped; });
+  document.querySelectorAll("[data-ago]").forEach(el => {
+    el.textContent = agoText(el.dataset.ago);
+    /* молчание дольше порога простоя — тот же момент, когда встают часы */
+    el.classList.toggle("stale", !S.finishedAt && !S.waiting && spanMs(el.dataset.ago, null) > IDLE_CAP_MS);
   });
-  const u = document.querySelector("[data-updated]");
-  if (u && u.dataset.updated){
-    const gap = end - at(u.dataset.updated);
-    u.textContent = `${L.updated} ${ago(gap)}`;
-    /* пишущаяся задача молчит десятками минут, поэтому её порог тишины другой */
-    const limit = u.dataset.busy === "true" ? 45 * 60e3 : 5 * 60e3;
-    u.classList.toggle("stale", !(S && S.finishedAt) && gap > limit);
-  }
-}, 1000);
+  document.querySelectorAll("[data-ago-short]").forEach(el => { el.textContent = agoShort(el.dataset.agoShort); });
+}
 
 /* ---------- перечитывание state.js ----------
-   панели предпросмотра глушат навигацию, но не подгрузку под-ресурсов,
-   поэтому состояние забирается новым <script>, а не перезагрузкой страницы */
-function stamp(){
+   Панели предпросмотра глушат навигацию, но не подгрузку под-ресурсов,
+   поэтому состояние забирается новым <script>, а не перезагрузкой страницы. */
+const SERVED = /^https?:$/.test(location.protocol);
+let pollT = null, pulling = false, misses = 0, lastStamp = null, booted = false;
+/* оркестратор часто правит статус, не двигая updatedAt, — поэтому в метке и статусы */
+const stampOf = S => [S.updatedAt, S.finishedAt, S.waiting ? S.waiting.since : "", (S.tickets || []).length,
+  (S.stages || []).map(s => s.status).join(""), (S.tickets || []).map(t => t.status).join("")].join("|");
+
+function applyState(){
   const S = window.STATE;
-  if (!S) return "";
-  return [S.updatedAt, S.finishedAt, (S.tickets || []).length,
-    (S.stages || []).map(s => s.status).join(""),
-    (S.tickets || []).map(t => t.status).join("")].join("|");
+  if (!S || typeof S !== "object") return;
+  const stamp = stampOf(S);
+  if (stamp === lastStamp) return;
+  lastStamp = stamp;
+  const y = window.scrollY;
+  try { render(); } catch (e) { lastStamp = ""; bootFail(esc(String(e && e.message || e))); }
+  window.scrollTo(0, y);
 }
-let last = "";
-setInterval(() => {
-  if (!auto || (window.STATE && window.STATE.finishedAt)) return;
+/* Две неудачи подряд — уже не файл, пойманный на записи, а мёртвый сервер. */
+function showLink(){
+  const el = document.getElementById("link");
+  const lost = SERVED && misses >= 2 && !(window.STATE && window.STATE.finishedAt);
+  el.parentNode.hidden = !lost;
+  if (lost) el.textContent = CUR.lost;
+}
+function pullState(done){
+  if (pulling) return;
+  pulling = true;
   const s = document.createElement("script");
   s.src = "state.js?t=" + Date.now();
-  s.onload = s.onerror = () => {
+  const end = ok => {
     s.remove();
-    const fresh = stamp();
-    if (fresh !== last){ last = fresh; render(); }
+    pulling = false;
+    misses = ok ? 0 : misses + 1;
+    if (ok) applyState();
+    showLink();
+    if (done) done(ok);
   };
-  document.body.appendChild(s);
-}, 10000);
+  s.onload = () => end(true);
+  s.onerror = () => end(false);
+  document.head.appendChild(s);
+}
+function pollState(){
+  clearTimeout(pollT);
+  if (window.STATE && window.STATE.finishedAt) return;
+  pollT = setTimeout(() => pullState(pollState), POLL_MS);
+}
+function refreshNow(btn){
+  clearTimeout(pollT);
+  if (btn) btn.classList.add("busy");
+  const started = Date.now();
+  pullState(ok => {
+    if (!ok && btn) misses = Math.max(misses, 2);
+    showLink();
+    /* крутится хотя бы полсекунды, иначе мгновенный ответ не отличить от «не нажалось» */
+    setTimeout(() => document.querySelectorAll("[data-refresh]").forEach(b => b.classList.remove("busy")),
+      Math.max(0, 500 - (Date.now() - started)));
+    pollState();
+  });
+}
+
+/* ---------- отрисовка ---------- */
+const KIND = {
+  "done":        {k:"done", bar:"f-done", icon:"check"},
+  "in-progress": {k:"now",  bar:"f-now stripes", icon:"pen", on:true},
+  "review":      {k:"rev",  bar:"f-rev", icon:"clock", on:true},
+  "repair":      {k:"fix",  bar:"f-fix", icon:"rotate", on:true},
+  "failed":      {k:"bad",  bar:"f-bad", icon:"x", on:true},
+  "pending":     {k:"wait", bar:"f-wait", icon:"hourglass"}
+};
+const kindOf = t => KIND[t.status] || KIND.pending;
+
+function render(){
+  const L = CUR, S = window.STATE, T = S.tickets || [], R = S.requirements || {};
+  MARKS = collectMarks(S);
+  WAITS = collectWaits(S);
+  const fin = !!S.finishedAt;
+  const waiting = !fin && S.waiting ? S.waiting : null;
+
+  const by = st => T.filter(t => t.status === st);
+  const done = by("done"), writing = by("in-progress"), inReview = by("review"),
+        inRepair = by("repair"), failedT = by("failed");
+  const running = writing.concat(inReview, inRepair);
+  const live = Math.max(0, (R.total || 0) - (R.dropped || 0));
+  const byId = Object.fromEntries(T.map(t => [t.id, t]));
+
+  const mins = t => (t.startedAt && t.finishedAt)
+    ? Math.max(1, Math.round(activeMs(t.startedAt, t.finishedAt) / 60000)) : null;
+  const durations = done.map(mins).filter(Boolean).sort((a, b) => a - b);
+  /* на одной сданной задаче медиана — случайность, оценку не строим */
+  const median = durations.length >= 2 ? durations[Math.floor(durations.length / 2)] : null;
+
+  const given = Array.isArray(S.stages) ? S.stages.filter(Boolean) : [];
+  const stages = STAGE_IDS.map(id => given.find(s => s.id === id) || {id, status:"pending"});
+  const stage = id => stages.find(s => s.id === id);
+  const stName = s => L.stages[s.id] || s.id;
+  const actives = stages.filter(s => s.status === "active");
+  /* build и review активны вместе — ревью идёт по задачам внутри разработки */
+  const activeStage = actives.find(s => s.id === "build") || actives[actives.length - 1];
+  const failedStage = stages.find(s => s.status === "failed");
+  const t0 = String(S.tier).toUpperCase() === "T0";
+  const sp = S.singlePass;
+
+  /* ---------- сколько осталось ----------
+     По цепочке задач в минутах: идущая двадцатую минуту задача стоит в оценке не как новая.
+     Ревью идёт внутри разработки, поэтому хвост после неё — только приёмка. */
+  const leftFor = t => {
+    if (!t || t.status === "done") return 0;
+    if (t.status === "review") return median * 0.2;
+    if (t.status === "repair") return median * 0.5;
+    if (t.status === "in-progress" && t.startedAt)
+      return Math.max(1, median - (activeMs(t.startedAt, null) || 0) / 60000);
+    return median;
+  };
+  const memo = {};
+  function chainMin(id, seen){
+    const t = byId[id];
+    if (!t || t.status === "done") return 0;
+    if (memo[id] != null) return memo[id];
+    if (seen.has(id)) return leftFor(t);
+    seen.add(id);
+    const d = leftFor(t) + Math.max(0, ...(t.blockedBy || []).map(b => chainMin(b, seen)));
+    seen.delete(id);
+    return memo[id] = d;
+  }
+  let left = null, lateEta = false;
+  if (!fin && !waiting && !failedStage && activeStage){
+    if ((activeStage.id === "build" || activeStage.id === "review") && median && T.length){
+      left = Math.max(0, ...T.map(t => chainMin(t.id, new Set()))) + finalTailMin(T.length);
+    } else if (activeStage.id === "final"){
+      left = Math.max(5, finalTailMin(T.length) - (activeMs(activeStage.startedAt, null) || 0) / 60000);
+      lateEta = true;
+    }
+  }
+  const eta = left ? [Math.max(1, Math.round(left * 0.75)), Math.max(2, Math.round(left * 1.4))] : null;
+  const etaText = eta ? (eta[1] < 60 ? `${eta[0]}–${eta[1]}<small>${L.min}</small>` : `${fmtDur(eta[0])} — ${fmtDur(eta[1])}`) : "";
+
+  /* ---------- шапка ---------- */
+  const names = list => list.map(t => q(esc(t.title), L.lang)).join(", ");
+  const env = (S.debt && S.debt.emptyEnv) || [], ph = (S.debt && S.debt.placeholders) || [],
+        asm = (S.debt && S.debt.assumptions) || [];
+  let heroCls = "", stateLine, h2, lead = "", big = "", bigSub = "", hint = "";
+  if (fin){
+    heroCls = "won";
+    stateLine = `<span class="badge-ic">${ic("check", "xs")}</span>${L.doneState}`;
+    h2 = esc(S.result || L.doneDefault);
+    lead = env.length || ph.length ? L.doneNeed(env.length, ph.length) : L.doneNothing;
+    big = fmtClock(activeMs(S.startedAt, S.finishedAt));
+    bigSub = L.doneBig(hhmm(S.finishedAt));
+  } else if (waiting){
+    heroCls = "ask";
+    stateLine = `<span class="live" aria-hidden="true"></span>${L.waitState}`;
+    h2 = L.waitH2[waiting.kind] || L.waitState;
+    lead = waiting.note ? esc(waiting.note) : "";
+    hint = `<span class="hint">${ic("msg", "m")}${L.waitHint}</span>`;
+    big = `<span data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span>`;
+    bigSub = L.waitBig;
+  } else if (failedStage){
+    heroCls = "bad";
+    stateLine = `<span class="badge-ic">${ic("x", "xs")}</span>${L.failState}`;
+    h2 = L.failH2(stName(failedStage));
+    lead = esc(failedStage.note || "");
+  } else {
+    const cur = activeStage || stages.find(s => s.status === "pending") || stages[stages.length - 1];
+    stateLine = `<span class="live" aria-hidden="true"></span>${L.stateRun[cur.id] || stName(cur)}`;
+    if ((cur.id === "build" || cur.id === "review") && T.length){
+      h2 = done.length === T.length ? L.buildAllDone(T.length) : L.buildH2(done.length, T.length, running.length);
+      lead = [writing.length ? L.leadWriting(names(writing)) : "", inReview.length ? L.leadReview(names(inReview)) : "",
+        inRepair.length ? L.leadRepair(names(inRepair)) : "", failedT.length ? L.leadFailed(names(failedT)) : ""]
+        .filter(Boolean).join(" ") || (done.length < T.length ? L.leadIdle : "");
+    } else if (cur.id === "build" && t0){
+      h2 = L.singleH2;
+      lead = cur.note ? esc(cur.note) : "";
+    } else {
+      h2 = L.h2Run[cur.id] || stName(cur);
+      lead = cur.note ? esc(cur.note) : (L.leadRun[cur.id] || "");
+    }
+    if (eta){ big = etaText; bigSub = lateEta ? L.etaLate : L.etaLbl; }
+    else if (cur.startedAt){ big = timerHTML(cur.startedAt, null); bigSub = L.stageClock(stName(cur)); }
+  }
+  const segs = stages.map(s => {
+    let cls = "s-pend", fill = "0%", inner = "", time = L.ahead;
+    if (s.status === "done"){ cls = "s-done"; fill = "100%"; time = s.startedAt ? timerHTML(s.startedAt, s.finishedAt) : "—"; }
+    else if (s.status === "skipped"){ cls = "s-skip"; time = L.skipped; }
+    else if (s.status === "failed"){ cls = "s-fail"; fill = "100%"; time = L.failedSt; }
+    else if (s.status === "active"){
+      cls = "s-now"; inner = "stripes";
+      fill = (s.id === "build" || s.id === "review") && T.length
+        ? Math.max(8, Math.round(done.length / T.length * 100)) + "%" : "50%";
+      time = waiting ? L.waitingSt : (s.startedAt ? timerHTML(s.startedAt, null) : "—");
+    }
+    return `<div class="${cls}" role="listitem"><div class="seg"><i class="${inner}" style="width:${fill}"></i></div>` +
+      `<span class="s-name">${esc(stName(s))}</span><span class="s-time">${time}</span></div>`;
+  }).join("");
+  const hero = `<section class="hero ${heroCls} w" aria-live="polite">
+    <div class="hero-top">
+      <div class="hero-main"><div class="state">${stateLine}</div><h2>${h2}</h2>
+        ${lead ? `<p class="lead">${lead}</p>` : ""}${hint}</div>
+      ${big ? `<div class="big"><b>${big}</b><span>${bigSub}</span>
+        <span class="paused" data-idle-note hidden>${L.paused}</span></div>` : ""}
+    </div>
+    <div class="track" role="list">${segs}</div>
+  </section>`;
+
+  /* ---------- плитки ---------- */
+  const rk = {done:R.done || 0, work:(R.inTicket || 0) + (R.inSpec || 0), ph:R.placeholder || 0, def:R.deferred || 0, drop:R.dropped || 0};
+  rk.open = Math.max(0, (R.total || 0) - rk.done - rk.work - rk.ph - rk.def - rk.drop);
+  const reqStack = `<div class="stack" aria-hidden="true">${[[rk.done, "f-done"], [rk.ph, "f-now"], [rk.work + rk.open, "f-idle"], [rk.def, "f-q"]]
+    .filter(x => x[0]).map(([n, c]) => `<i class="${c}" style="flex:${n}"></i>`).join("")}</div>`;
+  const tileReq = `<section class="card tile w"><span class="tk">${L.tReqs}</span>${R.total
+    ? `<span class="tv">${rk.done}<small>${L.of} ${live}</small></span>${reqStack}
+       <span class="ts">${[L.reqParts.done, rk.work ? L.reqParts.work(rk.work) : "", rk.open ? L.reqParts.open(rk.open) : "",
+         rk.ph ? L.reqParts.ph(rk.ph) : "", rk.def ? L.reqParts.def(rk.def) : "", rk.drop ? L.reqParts.drop(rk.drop) : ""]
+         .filter(Boolean).join(" · ")}</span>`
+    : `<span class="tv dim">—</span><span class="ts">${L.reqLater}</span>`}</section>`;
+  /* handoffs сюда не входят: передача свежему контексту — не дефект */
+  const retries = T.reduce((s, t) => s + (t.retries || 0), 0), repairs = T.reduce((s, t) => s + (t.repairs || 0), 0);
+  const tileTk = `<section class="card tile w"><span class="tk">${L.tTickets}</span>${T.length
+    ? `<span class="tv">${done.length}<small>${L.of} ${T.length}</small></span>
+       <div class="sq" aria-hidden="true">${T.map(t => `<i class="${kindOf(t).bar.replace(" stripes", "")}"></i>`).join("")}</div>
+       <span class="ts">${(done.length === T.length
+         ? [L.tkParts.all, repairs ? L.tkParts.repair(repairs) : "", retries ? L.tkParts.retry(retries) : ""]
+         : [writing.length ? L.tkParts.now(writing.length) : "", inReview.length ? L.tkParts.rev(inReview.length) : "",
+            inRepair.length ? L.tkParts.fix(inRepair.length) : "", failedT.length ? L.tkParts.bad(failedT.length) : ""])
+         .filter(Boolean).join(" · ") || L.leadIdle}</span>`
+    : `<span class="tv dim">${t0 ? `<span style="font-size:.6em">${L.noSplit}</span>` : "—"}</span><span class="ts">${t0 ? "" : L.tkLater}</span>`}</section>`;
+  const lastDone = done.filter(t => t.tests).sort((a, b) => (toMs(a.finishedAt) || 0) - (toMs(b.finishedAt) || 0)).pop();
+  const tests = S.tests || (sp && sp.tests) || (lastDone && lastDone.tests) || null;
+  const tileTests = `<section class="card tile w"><span class="tk">${L.tTests}</span>${tests
+    ? `<span class="tv">${esc(tests.passed || 0)}</span><span class="okb ${tests.failed ? "f-bad" : "f-done"}">${ic(tests.failed ? "x" : "check", "xs")}${
+        tests.failed ? L.testsBad(esc(tests.failed)) : L.testsOk}</span><span class="ts">${fin ? L.testsFinal : L.testsSub}</span>`
+    : `<span class="tv dim">—</span><span class="ts">${L.testsLater}</span>`}</section>`;
+  /* blind до 10.2026 писался в свободной форме, поэтому читается терпимо: счёт — только если есть оба числа */
+  const B = S.blind && typeof S.blind === "object" ? S.blind : null;
+  const bText = x => typeof x === "string" ? x : (x && (x.issue || x.requirement || x.text)) || JSON.stringify(x);
+  const miss = B ? [].concat(B.mismatches || (Array.isArray(B.discrepancies) ? B.discrepancies : [])).map(bText) : [];
+  const counted = !!B && B.matched != null && B.checked != null && isFinite(B.matched) && isFinite(B.checked);
+  const verdict = B && typeof B.verdict === "string" ? B.verdict : (B && typeof B.note === "string" ? B.note : "");
+  const blindRan = !!B && B.done !== false;
+  const bBig = counted ? `${esc(B.matched)}<small>${L.of} ${esc(B.checked)}</small>` : esc(miss.length);
+  const tile4 = fin && blindRan
+    ? `<section class="card tile w"><span class="tk">${L.tBlind}</span><span class="tv">${bBig}</span>
+        ${counted ? `<div class="stack" aria-hidden="true"><i class="f-done" style="flex:${+B.matched || 0}"></i><i class="f-now" style="flex:${Math.max(0, (+B.checked || 0) - (+B.matched || 0))}"></i></div>` : ""}
+        <span class="ts">${L.blindSub(miss.length)}</span></section>`
+    : `<section class="card tile w"><span class="tk">${L.tTime}</span><span class="tv">${S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : "—"}</span>
+        <span class="ts">${L.timeSub}${median ? " · " + L.median(median) : ""}</span></section>`;
+
+  /* ---------- ход работы ----------
+     Полоса показывает СОСТОЯНИЕ, а не долю: заливка в списке задач всегда читается как прогресс. */
+  let buildCard = "";
+  if (T.length){
+    const counts = {};
+    T.forEach(t => { const k = kindOf(t).k; counts[k] = (counts[k] || 0) + 1; });
+    const sw = {done:"f-done", now:"f-now", rev:"f-rev", fix:"f-fix", bad:"f-bad", wait:"f-wait"};
+    const legend = ["done", "now", "rev", "fix", "bad", "wait"].filter(k => counts[k]).map(k =>
+      `<span class="lg"><i class="${sw[k]}"></i>${L.kinds[k]} <b>${counts[k]}</b></span>`).join("");
+    const waves = [...new Set(T.map(t => t.wave ?? 1))].sort((a, b) => a - b);
+    const rows = waves.map(w => {
+      const inWave = T.filter(t => (t.wave ?? 1) === w)
+        .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, {numeric:true}));
+      const blockers = [...new Set(inWave.flatMap(t => t.blockedBy || []))].filter(b => byId[b] && byId[b].status !== "done");
+      const sub = inWave.every(t => t.status === "pending") && blockers.length ? L.waveWaits(blockers)
+        : inWave.length > 1 ? L.waveSub(inWave.length) : "";
+      return `<div class="wave">${L.wave(w)}${sub ? ` <span>${sub}</span>` : ""}</div>` + inWave.map(t => {
+        const k = kindOf(t);
+        const time = t.status === "done" ? fmtDur(mins(t))
+          : (t.startedAt && t.status !== "pending") ? timerHTML(t.startedAt, t.finishedAt) : "—";
+        const rf = t.repairFindings || [];
+        const note = t.status === "repair" && rf.length ? ["fix", L.noteRepair(rf[rf.length - 1])]
+          : t.status === "failed" && (t.concerns || []).length ? ["bad", t.concerns.join("; ")] : null;
+        const extra = t.status === "done" && (t.repairs || t.retries)
+          ? " · " + [t.repairs ? L.tkParts.repair(t.repairs) : "", t.retries ? L.tkParts.retry(t.retries) : ""].filter(Boolean).join(" · ") : "";
+        return `<div class="tl"><span class="tl-id${k.on ? " on" : ""}">${esc(t.id)}</span>
+          <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
+            <span class="chipin">${ic(k.icon, "xs")}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
+          <span class="tl-time ${k.on ? k.k : ""}">${time}</span>
+          ${note ? `<div class="tl-note ${note[0]}">${ic(k.icon)}<span>${esc(note[1])}</span></div>` : ""}</div>`;
+      }).join("");
+    }).join("");
+    buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3><div class="legend">${legend}</div></div>${rows}</section>`;
+  } else if (t0 && sp){
+    buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3><span>${timerHTML(sp.startedAt, sp.finishedAt)}</span></div>` +
+      `<div class="empty">${ic("list", "m")}<span>${L.single((sp.files || []).length, sp.commit ? esc(sp.commit) : "")}</span></div></section>`;
+  } else if (!fin){
+    buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3></div><div class="empty">${ic("list", "m")}<span>${L.noTickets}</span></div></section>`;
+  }
+
+  /* ---------- списки ---------- */
+  const list = (key, arr, n, fmt) => {
+    if (!arr || !arr.length) return "";
+    const open = UI.open[key], shown = open ? arr : arr.slice(0, n);
+    return `<ul class="nl n0">${shown.map(x => `<li>${fmt ? fmt(x) : esc(x)}</li>`).join("")}</ul>` + (arr.length > n
+      ? `<button type="button" class="btn-soft" data-more="${key}">${open ? L.collapse + ic("up") : L.more(arr.length - n) + ic("chev")}</button>` : "");
+  };
+  /* «файл:строка — суть» и «R05 — суть»: адрес серым моноширинным, суть обычным текстом */
+  const located = x => {
+    const m = /^(\S+?(?::\d+[\w,-]*|\.\w+)|[RGA]\d+[\w.]*)\s+[—–-]\s+(.*)$/.exec(String(x));
+    return m ? `<span class="mono" style="font-size:.9em;color:var(--mut)">${esc(m[1])}</span> — ${esc(m[2])}` : esc(x);
+  };
+  const keysBlock = env.length ? `<div class="need"><div class="nh">${L.envKeys}<span>${env.length}</span></div>
+      <div class="keys">${env.map(k => `<code class="key">${esc(k)}</code>`).join("")}</div></div>` : "";
+  const phBlock = ph.length ? `<div class="need"><div class="nh">${L.placeholders}<span>${ph.length}</span></div>${list("ph", ph, 3, located)}</div>` : "";
+  const asmBlock = asm.length ? `<div class="need"><div class="nh">${L.assumptions}<span>${asm.length}</span></div>${list("asm", asm, 3)}</div>` : "";
+  const needCard = fin
+    ? (env.length || ph.length ? `<section class="card prep w"><div class="whead"><h3 class="wt"><i>${ic("flag")}</i>${L.prep}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section>` : "")
+    : `<section class="card w"><div class="whead"><h3 class="wt">${L.need}</h3></div>${keysBlock + phBlock + asmBlock
+        || `<p class="muted">${L.needEmpty}</p>`}</section>`;
+  const asmCard = fin && asm.length ? `<section class="card w"><div class="whead"><h3 class="wt">${L.assumptions}</h3><span>${asm.length}</span></div>${list("asm", asm, 3)}</section>` : "";
+  const concerns = S.concerns || [], additions = S.additions || [];
+  const concernsCard = concerns.length ? `<section class="card w"><div class="whead"><h3 class="wt">${L.concerns}</h3><span>${concerns.length}</span></div>
+      <p class="muted" style="margin-bottom:8px">${L.concernsNote}</p>${list("concerns", concerns, 3, located)}</section>` : "";
+  const addCard = additions.length ? `<section class="card w"><div class="whead"><h3 class="wt">${L.additions}</h3><span>${additions.length}</span></div>${list("add", additions, 3)}</section>` : "";
+  const blindCard = B ? `<section class="card w"><div class="whead"><h3 class="wt">${L.blind}</h3></div>
+      <div class="blind-top">${counted ? `<b>${bBig}</b>` : ""}<p>${blindRan ? L.blindNote : ""} ${verdict ? esc(verdict.replace(/[.;:!]?\s*$/, ".")) : ""}${blindRan ? " " + (miss.length ? L.blindBad : L.blindOk) : ""}</p></div>
+      ${miss.map(m => `<div class="req"><p>${located(m)}</p></div>`).join("")}</section>` : "";
+  const rounds = (S.polish && S.polish.rounds) || [];
+  const polishCard = S.polish ? `<section class="card w"><div class="whead"><h3 class="wt">${L.polish}</h3></div>
+      <p class="muted">${L.polishSub(rounds.length, rounds.reduce((n, r) => n + (r.accepted || 0), 0))}</p></section>` : "";
+
+  /* ---------- проверки ----------
+     Отдельного поля нет: этап не закрывается, пока его гейт не прошёл, поэтому G1 и G3 читаются
+     по этапам брифинга и плана, G2 — по coverage, G4 — по blind. */
+  const gate = (id, cls, icon, sub) => `<div class="gate"><span class="gi ${cls}">${ic(icon, "xs")}</span><div><div class="gt">${L.gT[id]}</div><div class="gs">${sub}</div></div><span class="gk">${id}</span></div>`;
+  const later = (id, sub) => gate(id, "wait", "clock", fin ? L.gNone : sub);
+  const passed = st => st && (st.status === "done" || st.status === "skipped");
+  const okG = {};
+  const sb = stage("briefing"), ss = stage("spec"), spl = stage("plan");
+  const g1 = passed(sb) ? (okG.G1 = 1, gate("G1", "ok", "check", sb.note ? esc(sb.note) : L.g1ok))
+    : sb.status === "failed" ? gate("G1", "bad", "x", L.gFail)
+    : waiting && waiting.kind === "briefing" ? gate("G1", "warn", "msg", L.g1ask) : later("G1", L.g1later);
+  const C = S.coverage;
+  const g2 = C ? (okG.G2 = 1, gate("G2", "ok", "check", L.g2(+C.found || 0, +C.fixed || 0, +C.deferred || 0)))
+    : ss.status === "done" ? gate("G2", "warn", "alert", L.g2miss) : later("G2", L.g2later);
+  const g3 = spl.status === "done" && T.length ? (okG.G3 = 1, gate("G3", "ok", "check", L.g3ok(live, T.length)))
+    : spl.status === "skipped" && t0 ? (okG.G3 = 1, gate("G3", "ok", "check", L.g3t0))
+    : spl.status === "failed" ? gate("G3", "bad", "x", L.gFail) : later("G3", L.g3later);
+  const g4sub = n => counted ? L.g4(esc(B.matched), esc(B.checked), n) : esc(verdict) || L.blindSub(n);
+  const g4 = !B ? later("G4", L.g4later) : !blindRan ? gate("G4", "wait", "clock", esc(verdict) || L.gNone)
+    : miss.length ? gate("G4", "warn", "alert", g4sub(miss.length)) : (okG.G4 = 1, gate("G4", "ok", "check", g4sub(0)));
+  const gatesCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(Object.keys(okG).length)}</span></div>${g1}${g2}${g3}${g4}</section>`;
+
+  /* ---------- лента ----------
+     Собирается из отметок, которые и так лежат в state.js: отдельного журнала событий нет. */
+  const E = [];
+  const ev = (t, text, cls, icon) => { if (toMs(t) != null) E.push({t, text, cls, icon}); };
+  ev(S.startedAt, L.ev.init, "", "play");
+  stages.forEach(s => {
+    const n = stName(s);
+    if (s.status !== "pending" && s.startedAt) ev(s.startedAt, L.ev.stage.start(n), "", "play");
+    if (s.status === "done") ev(s.finishedAt, L.ev.stage.done(n, s.note), "f-done", "check");
+    if (s.status === "skipped") ev(s.finishedAt || s.startedAt, L.ev.stage.skip(n, s.note), "", "chev");
+    if (s.status === "failed") ev(s.finishedAt || s.startedAt, L.ev.stage.fail(n, s.note), "f-bad", "x");
+  });
+  const starts = {};
+  T.forEach(t => { if (t.startedAt) (starts[t.startedAt] = starts[t.startedAt] || []).push(t.id); });
+  Object.keys(starts).forEach(at => ev(at, L.ev.start(starts[at]), "", "play"));
+  T.forEach(t => {
+    if (t.status === "done") ev(t.finishedAt, L.ev.done(t.id, t.tests), "f-done", "check");
+    if (t.status === "failed") ev(t.finishedAt || t.startedAt, L.ev.fail(t.id), "f-bad", "x");
+  });
+  (S.waits || []).forEach(w => { ev(w.from, L.ev.ask(w.note), "f-now", "msg"); ev(w.to, L.ev.answered, "", "msg"); });
+  if (waiting) ev(waiting.since, L.ev.ask(waiting.note), "f-now", "msg");
+  if (fin) ev(S.finishedAt, L.ev.finish, "f-done", "flag");
+  const feedRows = E.sort((a, b) => toMs(b.t) - toMs(a.t)).slice(0, 12).map(e =>
+    `<div class="ev"><span class="ei ${e.cls}">${ic(e.icon, "xs")}</span><span>${esc(e.text)}</span>${
+      fin ? `<em>${hhmm(e.t)}</em>` : `<em data-ago-short="${esc(e.t)}">${agoShort(e.t)}</em>`}</div>`).join("");
+  const feedCard = feedRows ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3>${fin ? "" :
+    `<span data-ago="${esc(S.updatedAt || "")}">${S.updatedAt ? agoText(S.updatedAt) : ""}</span>`}</div>${feedRows}</section>` : "";
+
+  /* ---------- раскладка ---------- */
+  const leftCol = fin ? [needCard, blindCard, buildCard, polishCard] : [needCard, addCard, polishCard];
+  const rightCol = fin ? [gatesCard, asmCard, concernsCard, addCard, feedCard] : [gatesCard, feedCard, concernsCard];
+  const fmtDay = iso => new Date(iso).toLocaleString(L.locale, {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"});
+  const when = S.startedAt ? (fin ? L.startedRange(fmtDay(S.startedAt), hhmm(S.finishedAt))
+    : L.started(new Date(S.startedAt).toDateString() === new Date().toDateString() ? `${L.today} ${hhmm(S.startedAt)}` : fmtDay(S.startedAt))) : "";
+  const tags = [S.prd, S.mode && (L.modes[S.mode] || S.mode), S.depth && (L.depths[S.depth] || S.depth),
+    S.tier && L.tier(S.tier), S.polish && L.polishTag].filter(Boolean).map(x => `<span class="tag">${esc(x)}</span>`).join("");
+  const th = effectiveTheme();
+
+  document.documentElement.lang = L.lang;
+  const app = document.getElementById("app");
+  app.innerHTML = `
+  <header class="top">
+    <div class="mark">PRD</div>
+    <div class="tools">
+      ${fin ? "" : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic("sync")}</button>`}
+      <div class="tabs" role="group" aria-label="${L.themeLabel}">
+        <button type="button" data-theme="light" title="${L.themeLight}" aria-label="${L.themeLight}" aria-pressed="${th === "light"}">${ic("sun")}</button>
+        <button type="button" data-theme="dark" title="${L.themeDark}" aria-label="${L.themeDark}" aria-pressed="${th === "dark"}">${ic("moon")}</button>
+      </div>
+      <div class="tabs" role="group" aria-label="${L.langLabel}">
+        <button type="button" data-lang="ru" aria-pressed="${L.lang === "ru"}">RU</button>
+        <button type="button" data-lang="en" aria-pressed="${L.lang === "en"}">EN</button>
+      </div>
+    </div>
+  </header>
+  <div class="title">
+    <h1>${esc(S.title || S.slug || "")}</h1>
+    <div class="meta">${tags}<span class="when">${when}</span></div>
+  </div>
+  ${hero}
+  <div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>
+  ${fin ? "" : buildCard}
+  <div class="cols"><div class="col">${leftCol.join("")}</div><div class="col">${rightCol.join("")}</div></div>
+  <footer>
+    <span>${[S.docsPath ? `${L.filesIn} <code>${esc(S.docsPath)}</code>` : "",
+      S.codeBranch ? `${L.branch} <code>${esc(S.codeBranch)}</code>` : "",
+      /^https?:\/\//.test(S.stand || "") ? `<a href="${esc(S.stand)}" target="_blank" rel="noopener">${L.stand}</a>` : ""]
+      .filter(Boolean).join(" · ")}</span>
+    <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || "")}">${S.updatedAt ? agoText(S.updatedAt) : "—"}</span>`}</span>
+  </footer>`;
+
+  /* вкладку видно и тогда, когда дашборд в фоне */
+  document.title = (waiting ? L.tabWait + " — " : "") + (S.title ? `${S.title} — prd` : "prd");
+
+  if (!booted){
+    booted = true;
+    app.classList.add("boot");
+    setTimeout(() => app.classList.remove("boot"), 1400);
+  }
+  tick();
+  showLink();
+  if (!pulling) pollState();
+}
+
+/* Пустой экран не говорит, что сломалось, — поэтому страница объясняет и продолжает опрос. */
+function bootFail(why){
+  const L = CUR;
+  document.getElementById("app").innerHTML = `<header class="top"><div class="mark">PRD</div></header>
+    <section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${why}</p>
+    <p class="muted" style="margin-top:10px">${L.bootHelp}</p></section>`;
+}
+
+/* Один обработчик на всё: #app переписывается целиком на каждом событии. */
+document.getElementById("app").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.lang){
+    CUR = I18N[b.dataset.lang];
+    store("prd-lang", b.dataset.lang);
+    if (window.STATE) render();
+  } else if (b.dataset.theme){
+    /* повторный клик по выбранной теме возвращает системную */
+    store("prd-theme", storedTheme() === b.dataset.theme ? null : b.dataset.theme);
+    applyTheme();
+    document.querySelectorAll("button[data-theme]").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.theme === effectiveTheme())));
+  } else if (b.hasAttribute("data-refresh")){
+    refreshNow(b);
+  } else if (b.dataset.more){
+    UI.open[b.dataset.more] = !UI.open[b.dataset.more];
+    render();
+  }
+});
 
 applyTheme();
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  if (theme === "system") render();
-});
-last = stamp();
-render();
+if (!window.STATE || typeof window.STATE !== "object"){
+  bootFail(CUR.bootWhy);
+  pollState();
+} else {
+  try { render(); lastStamp = stampOf(window.STATE); }
+  catch (e) { bootFail(esc(String(e && e.message || e))); pollState(); }
+}
+setInterval(tick, 1000);
+/* После сна компьютера таймеры страницы стояли — не ждём очередного круга опроса. */
+document.addEventListener("visibilitychange", () => { if (!document.hidden){ tick(); refreshNow(); } });
+window.addEventListener("pageshow", e => { if (e.persisted){ tick(); refreshNow(); } });
+try {
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (storedTheme()) return;
+    document.querySelectorAll("button[data-theme]").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.theme === effectiveTheme())));
+  });
+} catch (e) {}
 </script>
+</body>
+</html>
