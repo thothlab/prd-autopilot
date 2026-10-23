@@ -162,6 +162,7 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] �
 └── run/prd_XX/
     ├── state.js             состояние прогона — единственный файл, который ты пишешь
     ├── dashboard.html       человеческий вид — копируется один раз и больше не трогается
+    ├── usage.js             расход токенов — пишет `<skillDir>/tools/usage.py`, не ты
     └── README.md            как читать эту папку — для человека, пишется один раз
 
 CLAUDE.md | AGENTS.md        память проекта — то, что следующая сессия прочитает первым

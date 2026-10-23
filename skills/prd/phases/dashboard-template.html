@@ -195,6 +195,12 @@
   .gt{font-size:15px;font-weight:650;line-height:1.35}
   .gs{font-size:13px;color:var(--mut);margin-top:2px;line-height:1.45;overflow-wrap:anywhere}
   .gk{font-size:12px;font-weight:750;color:var(--quiet);padding-top:3px}
+  .use{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line)}
+  .whead+.use{border-top:0;padding-top:0}
+  .use b{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .use b small{font-size:14px;font-weight:600;color:var(--mut);letter-spacing:0}
+  .use .gs{grid-column:1/-1;margin:0}
+  .use+.muted{margin-top:6px;font-size:13px}
   .ev{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:11px;align-items:start;padding:9px 0;font-size:14px;line-height:1.45;border-top:1px solid var(--line)}
   .whead+.ev{border-top:0;padding-top:0}
   .ei{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--inset);color:var(--mut)}
@@ -308,6 +314,8 @@
 <div class="lost" hidden><div id="link" role="status"></div></div>
 <div class="wrap" id="app"></div>
 
+<!-- usage.js пишет tools/usage.py, и только в Claude Code; без него карточки расхода нет. -->
+<script src="usage.js"></script>
 <script src="state.js"></script>
 <script>
 "use strict";
@@ -425,6 +433,14 @@ const I18N = {
     g4later:"В конце: чистая копия, проверка по запросу без PRD", gNone:"Не отмечено в этой работе",
     gFail:"Не прошёл — фаза переделывается",
     feed:"Лента",
+    usage:"Расход токенов", useReq:n=>`${n.toLocaleString("ru-RU")} ${plural(n,"запрос","запроса","запросов")}`,
+    useIn:"Входящие", useInSub:p=>`${p}% из них - чтение кэша, оно в разы дешевле обычного входа`,
+    useOut:"Исходящие", useOutSub:"ответы, код и рассуждения модели",
+    useUsd:"Стоимость по API",
+    useSplit:(l,a,n)=>`оркестратор ${l} · исполнители ${a}${n ? ` (${n} ${plural(n,"агент","агента","агентов")})` : ""}`,
+    useNote:t=>`Оценка по списочным ценам API, как если бы те же запросы шли не по подписке. Пересчитано в ${t}.`,
+    useUnpriced:m=>`Цены ${m} нет в таблице - посчитано как Opus 5.5.`,
+    tokK:"тыс.", tokM:"млн", tokB:"млрд",
     need:"Понадобится от тебя", prep:"Перед запуском — от тебя",
     envKeys:"Переменные окружения", placeholders:"Заглушки — нужны твои данные", assumptions:"Решения, принятые без твоего ответа",
     needEmpty:"Пока ничего. По ходу работы здесь появятся переменные окружения и заглушки, которые нужно будет заполнить, и решения, принятые без твоего ответа, — их стоит проверить.",
@@ -517,6 +533,14 @@ const I18N = {
     g4later:"At the end: a clean copy, checked against the request without the PRD", gNone:"Not recorded in this run",
     gFail:"Failed — the phase is being redone",
     feed:"Feed",
+    usage:"Token usage", useReq:n=>`${n.toLocaleString("en-GB")} ${n === 1 ? "request" : "requests"}`,
+    useIn:"Input", useInSub:p=>`${p}% of it is cache reads, several times cheaper than fresh input`,
+    useOut:"Output", useOutSub:"answers, code and the model's reasoning",
+    useUsd:"Cost at API prices",
+    useSplit:(l,a,n)=>`orchestrator ${l} · executors ${a}${n ? ` (${en(n,"agent","agents")})` : ""}`,
+    useNote:t=>`Estimated at API list prices, as if the same requests were billed outside a subscription. Recounted at ${t}.`,
+    useUnpriced:m=>`No price for ${m} in the table - counted as Opus 5.5.`,
+    tokK:"K", tokM:"M", tokB:"B",
     need:"Needed from you", prep:"Before you run it",
     envKeys:"Environment variables", placeholders:"Placeholders — your data needed", assumptions:"Decisions made without your answer",
     needEmpty:"Nothing yet. Environment variables and placeholders you'll need to fill in, and decisions made without your answer, will show up here as the work goes — worth a look.",
@@ -689,7 +713,8 @@ const SERVED = /^https?:$/.test(location.protocol);
 let pollT = null, pulling = false, misses = 0, lastStamp = null, booted = false;
 /* оркестратор часто правит статус, не двигая updatedAt, — поэтому в метке и статусы */
 const stampOf = S => [S.updatedAt, S.finishedAt, S.waiting ? S.waiting.since : "", (S.tickets || []).length,
-  (S.stages || []).map(s => s.status).join(""), (S.tickets || []).map(t => t.status).join("")].join("|");
+  (S.stages || []).map(s => s.status).join(""), (S.tickets || []).map(t => t.status).join(""),
+  (window.USAGE || {}).updatedAt || ""].join("|");
 
 function applyState(){
   const S = window.STATE;
@@ -708,22 +733,24 @@ function showLink(){
   el.parentNode.hidden = !lost;
   if (lost) el.textContent = CUR.lost;
 }
+function pullScript(name, done){
+  const s = document.createElement("script");
+  s.src = name + "?t=" + Date.now();
+  s.onload = () => { s.remove(); done(true); };
+  s.onerror = () => { s.remove(); done(false); };
+  document.head.appendChild(s);
+}
+/* usage.js раньше state.js: после finishedAt опрос встаёт, и последний расход должен успеть в этот же круг */
 function pullState(done){
   if (pulling) return;
   pulling = true;
-  const s = document.createElement("script");
-  s.src = "state.js?t=" + Date.now();
-  const end = ok => {
-    s.remove();
+  pullScript("usage.js", () => pullScript("state.js", ok => {
     pulling = false;
     misses = ok ? 0 : misses + 1;
     if (ok) applyState();
     showLink();
     if (done) done(ok);
-  };
-  s.onload = () => end(true);
-  s.onerror = () => end(false);
-  document.head.appendChild(s);
+  }));
 }
 function pollState(){
   clearTimeout(pollT);
@@ -1024,6 +1051,26 @@ function render(){
     : miss.length ? gate("G4", "warn", "alert", g4sub(miss.length)) : (okG.G4 = 1, gate("G4", "ok", "check", g4sub(0)));
   const gatesCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(Object.keys(okG).length)}</span></div>${g1}${g2}${g3}${g4}</section>`;
 
+  /* ---------- расход ----------
+     Числа считает tools/usage.py по транскриптам; нет usage.js — нет и карточки, нулей не рисуем. */
+  const U = window.USAGE && window.USAGE.total ? window.USAGE : null;
+  let usageCard = "";
+  if (U){
+    const num = (v, d) => v.toLocaleString(L.locale, {maximumFractionDigits:d});
+    const tok = n => n >= 1e9 ? `${num(n / 1e9, 2)}<small> ${L.tokB}</small>`
+      : n >= 1e6 ? `${num(n / 1e6, n < 1e7 ? 2 : 1)}<small> ${L.tokM}</small>`
+      : n >= 1e3 ? `${num(n / 1e3, n < 1e4 ? 1 : 0)}<small> ${L.tokK}</small>` : num(n, 0);
+    const usd = v => "$" + num(v || 0, v < 10 ? 2 : 0);
+    const tt = U.total, inAll = (tt.input || 0) + (tt.cacheRead || 0) + (tt.cacheWrite || 0);
+    const ul = U.lead || {}, ag = U.agents || {};
+    const row = (k, v, sub) => `<div class="use"><span class="gt">${k}</span><b>${v}</b>${sub ? `<span class="gs">${sub}</span>` : ""}</div>`;
+    usageCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.usage}</h3><span>${L.useReq(tt.requests || 0)}</span></div>
+      ${row(L.useIn, tok(inAll), inAll ? L.useInSub(Math.round((tt.cacheRead || 0) / inAll * 100)) : "")}
+      ${row(L.useOut, tok(tt.output || 0), L.useOutSub)}
+      ${row(L.useUsd, "≈ " + usd(tt.usd), ag.requests ? L.useSplit(usd(ul.usd), usd(ag.usd), ag.count || 0) : "")}
+      <p class="muted">${L.useNote(hhmm(U.updatedAt))}${(U.unpriced || []).length ? " " + L.useUnpriced(esc(U.unpriced.join(", "))) : ""}</p></section>`;
+  }
+
   /* ---------- лента ----------
      Собирается из отметок, которые и так лежат в state.js: отдельного журнала событий нет. */
   const E = [];
@@ -1054,7 +1101,7 @@ function render(){
 
   /* ---------- раскладка ---------- */
   const leftCol = fin ? [needCard, blindCard, buildCard, polishCard] : [needCard, addCard, polishCard];
-  const rightCol = fin ? [gatesCard, asmCard, concernsCard, addCard, feedCard] : [gatesCard, feedCard, concernsCard];
+  const rightCol = fin ? [gatesCard, usageCard, asmCard, concernsCard, addCard, feedCard] : [gatesCard, usageCard, feedCard, concernsCard];
   const fmtDay = iso => new Date(iso).toLocaleString(L.locale, {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"});
   const when = S.startedAt ? (fin ? L.startedRange(fmtDay(S.startedAt), hhmm(S.finishedAt))
     : L.started(new Date(S.startedAt).toDateString() === new Date().toDateString() ? `${L.today} ${hhmm(S.startedAt)}` : fmtDay(S.startedAt))) : "";
