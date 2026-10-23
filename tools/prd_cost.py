@@ -58,7 +58,11 @@ def subagents(main_path):
 
 
 def records(path):
-    """Записи ассистента с непустым usage — каждая это один оплаченный запрос."""
+    """Оплаченные запросы: записи ассистента с непустым usage, по одной на message.id.
+
+    Ответ пишется в транскрипт строкой на каждый блок, и у всех строк один и тот же
+    usage — без дедупа счёт выходит в 2-3 раза больше настоящего."""
+    seen = set()
     for line in io.open(path, encoding="utf-8", errors="replace"):
         if '"usage"' not in line:
             continue
@@ -69,7 +73,8 @@ def records(path):
         if d.get("type") != "assistant":
             continue
         msg = d.get("message") if isinstance(d.get("message"), dict) else {}
-        if msg.get("usage"):
+        if msg.get("usage") and msg.get("id") not in seen:
+            seen.add(msg.get("id"))
             yield msg
 
 
@@ -214,7 +219,7 @@ def cmd_compose(args):
                 continue
             cat = collections.Counter()
             tool_in = collections.Counter()
-            req = no_tool = 0
+            seen, with_tool = set(), set()
             for path in paths:
                 for line in io.open(path, encoding="utf-8", errors="replace"):
                     try:
@@ -224,17 +229,16 @@ def cmd_compose(args):
                     t = d.get("type")
                     msg = d.get("message") if isinstance(d.get("message"), dict) else {}
                     if t == "assistant" and (msg.get("usage") or {}):
-                        req += 1
-                        has = False
+                        # строк на запрос несколько, по блоку на строку: проза считается с каждой, запрос — один раз
+                        seen.add(msg.get("id"))
                         for b in blocks(msg):
                             if b.get("type") == "text":
                                 cat["проза ассистента"] += len(b.get("text", ""))
                             elif b.get("type") == "tool_use":
-                                has = True
+                                with_tool.add(msg.get("id"))
                                 n = len(json.dumps(b.get("input") or {}, ensure_ascii=False))
                                 cat["аргументы вызовов"] += n
                                 tool_in[b.get("name", "?")] += n
-                        no_tool += 0 if has else 1
                     elif t == "user":
                         for b in blocks(msg):
                             if b.get("type") == "tool_result":
@@ -243,6 +247,7 @@ def cmd_compose(args):
                                     c if isinstance(c, str) else json.dumps(c, ensure_ascii=False))
                             elif b.get("type") == "text":
                                 cat["реплики и напоминания"] += len(b.get("text", ""))
+            req, no_tool = len(seen), len(seen - with_tool)
             total = sum(cat.values()) or 1
             print("=" * 74)
             print(f"{label}: запросов {req}, из них без вызова инструмента "
