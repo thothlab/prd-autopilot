@@ -23,7 +23,7 @@ import os
 import re
 import sys
 
-ROOT = os.path.expanduser("~/.claude/projects")
+ROOT = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"), "projects")
 
 # $ за миллион токенов: (вход, выход, чтение кэша). Запись кэша — от входа: 5m x1.25, 1h x2.
 # Сверено с прайсом на 10.2026.
