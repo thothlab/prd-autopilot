@@ -439,6 +439,7 @@ const I18N = {
     useUsd:"Стоимость по API",
     useSplit:(l,a,n)=>`оркестратор ${l} · исполнители ${a}${n ? ` (${n} ${plural(n,"агент","агента","агентов")})` : ""}`,
     useNote:t=>`Оценка по списочным ценам API, как если бы те же запросы шли не по подписке. Пересчитано в ${t}.`,
+    usePrice:(live,d)=>live ? `Цены - прайс Anthropic на ${d}.` : `Цены - встроенная таблица от ${d}: прайс не скачался, скрипт попробует снова.`,
     useUnpriced:m=>`Цены ${m} нет в таблице - посчитано как Opus 5.5.`,
     tokK:"тыс.", tokM:"млн", tokB:"млрд",
     need:"Понадобится от тебя", prep:"Перед запуском — от тебя",
@@ -539,6 +540,7 @@ const I18N = {
     useUsd:"Cost at API prices",
     useSplit:(l,a,n)=>`orchestrator ${l} · executors ${a}${n ? ` (${en(n,"agent","agents")})` : ""}`,
     useNote:t=>`Estimated at API list prices, as if the same requests were billed outside a subscription. Recounted at ${t}.`,
+    usePrice:(live,d)=>live ? `Prices from the Anthropic price list as of ${d}.` : `Prices from the built-in table of ${d}: the price list did not download, the script will retry.`,
     useUnpriced:m=>`No price for ${m} in the table - counted as Opus 5.5.`,
     tokK:"K", tokM:"M", tokB:"B",
     need:"Needed from you", prep:"Before you run it",
@@ -1062,13 +1064,14 @@ function render(){
       : n >= 1e3 ? `${num(n / 1e3, n < 1e4 ? 1 : 0)}<small> ${L.tokK}</small>` : num(n, 0);
     const usd = v => "$" + num(v || 0, v < 10 ? 2 : 0);
     const tt = U.total, inAll = (tt.input || 0) + (tt.cacheRead || 0) + (tt.cacheWrite || 0);
-    const ul = U.lead || {}, ag = U.agents || {};
+    const ul = U.lead || {}, ag = U.agents || {}, P = U.prices;
+    const fmtDate = iso => { const d = new Date(iso + "T12:00:00"); return isNaN(d) ? iso : d.toLocaleDateString(L.locale, {day:"2-digit", month:"2-digit", year:"numeric"}); };
     const row = (k, v, sub) => `<div class="use"><span class="gt">${k}</span><b>${v}</b>${sub ? `<span class="gs">${sub}</span>` : ""}</div>`;
     usageCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.usage}</h3><span>${L.useReq(tt.requests || 0)}</span></div>
       ${row(L.useIn, tok(inAll), inAll ? L.useInSub(Math.round((tt.cacheRead || 0) / inAll * 100)) : "")}
       ${row(L.useOut, tok(tt.output || 0), L.useOutSub)}
       ${row(L.useUsd, "≈ " + usd(tt.usd), ag.requests ? L.useSplit(usd(ul.usd), usd(ag.usd), ag.count || 0) : "")}
-      <p class="muted">${L.useNote(hhmm(U.updatedAt))}${(U.unpriced || []).length ? " " + L.useUnpriced(esc(U.unpriced.join(", "))) : ""}</p></section>`;
+      <p class="muted">${L.useNote(hhmm(U.updatedAt))}${P && P.at ? " " + L.usePrice(P.source !== "builtin", esc(fmtDate(P.at))) : ""}${(U.unpriced || []).length ? " " + L.useUnpriced(esc(U.unpriced.join(", "))) : ""}</p></section>`;
   }
 
   /* ---------- лента ----------
