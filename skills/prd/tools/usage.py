@@ -144,6 +144,7 @@ def transcripts(sid):
 class Bucket:
     def __init__(self):
         self.input = self.cache_read = self.cache_write = self.output = self.requests = 0
+        self.context = 0  # контекст последнего запроса
         self.usd = 0.0
 
     def add(self, part, model, fast, prices):
@@ -205,11 +206,17 @@ def scan(path, bucket, lo, hi, seen, unpriced, prices):
             continue
         seen.add(key)
         fast = u.get("speed") == "fast"
-        # в iterations лежат и вызовы советника со своей моделью; верхний usage их не включает
+        ctx = 0
+        # в iterations лежат и вызовы советника со своей моделью; верхний usage их не включает,
+        # зато складывает вход частей до и после советника - контекст берётся по частям
         for part in u.get("iterations") or [u]:
             miss = bucket.add(part, part.get("model") or msg.get("model"), fast, prices)
             if miss:
                 unpriced.add(miss)
+            if part.get("type") != "advisor_message":
+                ctx = max(ctx, sum(part.get(k, 0) or 0 for k in
+                                   ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")))
+        bucket.context = ctx
         bucket.requests += 1
         counted = True
     return counted
@@ -258,7 +265,7 @@ def main(argv):
     data = {
         "updatedAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "sessions": sessions,
-        "lead": lead.as_dict(),
+        "lead": dict(lead.as_dict(), context=lead.context),
         "agents": dict(agents.as_dict(), count=n_agents),
         "total": total.as_dict(),
         "unpriced": sorted(unpriced),
@@ -271,7 +278,8 @@ def main(argv):
     os.replace(tmp, out_path)
     inp = total.input + total.cache_read + total.cache_write
     src = "встроенным ценам" if prices["source"] == "builtin" else "прайсу на " + prices["at"]
-    print(f"usage: вход {inp / 1e6:.1f}M, выход {total.output / 1e6:.2f}M, ~${total.usd:.0f} по {src}")
+    print(f"usage: вход {inp / 1e6:.1f}M, выход {total.output / 1e6:.2f}M, ~${total.usd:.0f} по {src}; "
+          f"контекст оркестратора {lead.context / 1000:.0f}k")
 
 
 if __name__ == "__main__":
