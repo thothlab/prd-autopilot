@@ -4,6 +4,7 @@
 Читает `~/.claude/projects/<проект>/<сессия>.jsonl` и каталог `<сессия>/subagents/`
 рядом с ним. Ничего не пишет и никуда не ходит: только стандартная библиотека.
 
+    python3 tools/prd_cost.py run     <run/prd_XX> [сессия ...]   прогон по ролям и задачам
     python3 tools/prd_cost.py cost    <сессия> [...]   деньги: оркестратор против исполнителей
     python3 tools/prd_cost.py ceiling <сессия> [...]   держится ли потолок вызовов
     python3 tools/prd_cost.py curve   <сессия> [...]   как цена растёт с длиной задачи
@@ -14,13 +15,19 @@
 Сессия задаётся путём к `.jsonl`, парой `<каталог-проекта>/<id-сессии>` или
 одним id — искать будет от `~/.claude/projects`.
 
+`run` берёт сессии из `usage.js` прогона, окно — из `state.js` (от `startedAt`
+до `finishedAt`, у незакрытого прогона до `updatedAt`), роль субагента — из
+`description` в `subagents/*.meta.json`. Он не зависит от того, когда оркестратор
+последний раз запускал `usage.py`, поэтому сверяет и устаревшую карточку дашборда.
+
 Деньги считаются так же, как карточку считает `skills/prd/tools/usage.py`:
 по списочным ценам API, а не по счёту подписки, с вызовами советника из
-`usage.iterations` и двойной ценой быстрого режима, по встроенной таблице `usage.py`.
+`usage.iterations` и двойной ценой быстрого режима. `run` берёт снимок прайса
+из `usage.js` прогона, остальные команды — встроенную таблицу `usage.py`.
 Вход ещё приводится к «эквиваленту базовой цены»: сколько токенов обычного
-входа стоили бы столько же, сколько прочитанное с чтением и записью кэша. Цены меняются — сверяйтесь с
-прайсом перед тем, как цитировать абсолютные числа; отношения между прогонами
-устойчивее абсолютных сумм.
+входа стоили бы столько же, сколько прочитанное с чтением и записью кэша.
+Цены меняются — сверяйтесь с прайсом перед тем, как цитировать абсолютные
+числа; отношения между прогонами устойчивее абсолютных сумм.
 """
 
 import collections
@@ -38,6 +45,15 @@ import usage  # noqa: E402  одни цены и один разбор usage с 
 ROOT = usage.ROOT
 PRICES = usage.builtin_prices()
 
+# роль субагента по description из meta.json: первое совпадение сверху
+ROLES = (
+    ("повторное ревью", r"re-?review|повторн\w* ревью|^(review|ревью|verify).*(repair|починк|fix)"),
+    ("ревью", r"^(prd\s*\d+\s*)?(review|ревью)|финальн\w* ревью|craft|manifest|манифест"),
+    ("исполнители", r"^(prd\s*\d+\s*)?(task|задач|исполн)|^(continue|execute|fresh fix)\b.*task"),
+    ("гейты", r"blind|coverage|acceptance|приёмк|покрыти|\bg[24]\b"),
+    ("исследование", r"research|codebase map|^map |analog|ресёрч|исслед"),
+    ("журнал и память", r"journal|правки|memory|памят"),
+)
 
 
 # ---------- разбор транскрипта ----------
@@ -171,7 +187,123 @@ def scan(path):
     return s
 
 
+def role_of(desc):
+    d = desc.lower().strip()
+    return next((name for name, rx in ROLES if re.search(rx, d)), "прочее")
+
+
+def task_of(desc):
+    m = re.search(r"\d+", re.sub(r"(?i)prd\s*\d+|\bg[24]\b", "", desc))
+    return m.group(0).zfill(2) if m else None
+
+
+def busy_hours(stamps, gap=1800):
+    """Сумма промежутков между запросами не длиннее получаса: ночи и ожидание не считаются."""
+    stamps = sorted(stamps)
+    return sum(b - a for a, b in zip(stamps, stamps[1:]) if b - a <= gap) / 3600
+
+
 # ---------- команды ----------
+
+def cmd_run(args):
+    """Прогон целиком: деньги и время по ролям и по задачам, советник отдельно."""
+    run = args[0].rstrip("/")
+    state = usage.read_js(os.path.join(run, "state.js"), "STATE")
+    if not state or usage.parse_ts(state.get("startedAt")) is None:
+        sys.exit(f"не прочитан {run}/state.js или в нём нет startedAt")
+    prev = usage.read_js(os.path.join(run, "usage.js"), "USAGE") or {}
+    prices = prev.get("prices") or PRICES
+    sessions = list(dict.fromkeys(list(prev.get("sessions") or []) + args[1:]))
+    if not sessions:
+        sys.exit("в usage.js нет сессий: назови их после каталога прогона")
+    lo = usage.parse_ts(state.get("startedAt"))
+    hi = usage.parse_ts(state.get("finishedAt") or state.get("updatedAt"))
+
+    roles = collections.defaultdict(lambda: Stats(prices))
+    agents = collections.Counter()
+    per_task = collections.defaultdict(lambda: collections.defaultdict(float))
+    models = collections.defaultdict(collections.Counter)
+    others, missing, stamps = collections.Counter(), [], []
+    for sid in sessions:
+        main_path = locate(sid)
+        if not main_path:
+            missing.append(sid)
+            continue
+        files = [("оркестратор", None, main_path, "")]
+        for p in subagents(main_path):
+            meta = p[:-6] + ".meta.json"
+            desc = json.load(io.open(meta, encoding="utf-8")).get("description", "") if os.path.exists(meta) else ""
+            files.append((role_of(desc), task_of(desc), p, desc))
+        for role, task, p, desc in files:
+            n = 0
+            for msg, t in records(p, lo, hi):
+                usd, adv = roles[role].add(msg)
+                stamps.append(t)
+                n += 1
+                if task is None or role not in ("исполнители", "ревью", "повторное ревью"):
+                    continue
+                T = per_task[task]
+                T["советник"] += adv
+                T["исполнение" if role == "исполнители" else "ревью"] += usd - adv
+                if role == "исполнители":
+                    models[task][re.sub(r"^claude-|\[.*\]$", "", msg.get("model") or "?")] += 1
+            if n and role == "прочее":
+                others[desc[:60]] += 1
+            if n and role != "оркестратор":
+                agents[role] += 1
+                if role == "исполнители" and task:
+                    per_task[task]["контекстов"] += 1
+
+    waits = [(usage.parse_ts(w.get("from")), usage.parse_ts(w.get("to"))) for w in state.get("waits") or []]
+    waits = [(a, b) for a, b in waits if a and b]
+
+    def active_min(a, b):
+        return (b - a - sum(max(0, min(b, y) - max(a, x)) for x, y in waits)) / 60
+
+    tickets = state.get("tickets") or []
+    done = [t for t in tickets if t.get("status") in ("done", "accepted")]
+    total = sum(s.usd for s in roles.values())
+    adv = sum(s.advisor for s in roles.values())
+    hours = busy_hours(stamps)
+    lead = roles.get("оркестратор") or Stats(prices)
+    end = "finishedAt" if state.get("finishedAt") else "updatedAt, прогон не закрыт"
+    print("=" * 74)
+    print(f"{run}   схема {state.get('scheme') or 'prd'}")
+    print(f"  окно {state.get('startedAt', '')[:16]} -> {(state.get('finishedAt') or state.get('updatedAt') or '')[:16]} ({end})")
+    print(f"  сессий {len(sessions) - len(missing)} из {len(sessions)}"
+          + (f", не найдены здесь: {', '.join(s[:8] for s in missing)}" if missing else "")
+          + f"; цены: {prices.get('source', '?')[:40]} на {prices.get('at', '?')}")
+    if not stamps:
+        print("  запросов в окне нет")
+        return
+    per_done = f"${total / len(done):.1f}" if done else "-"
+    print(f"  ИТОГО ${total:.1f}, задач сделано {len(done)} из {len(tickets)}, на задачу {per_done}")
+    print(f"  активных часов {hours:.1f}" + (f", {hours / len(done):.2f} на задачу" if done else ""))
+    print(f"  советник ${adv:.1f} ({adv / total * 100:.0f}%) в {sum(s.advisor_calls for s in roles.values())} вызовах")
+    print(f"  контекст оркестратора: пик {lead.peak_ctx / 1000:.0f}k, в конце окна {(lead.ctx or [0])[-1] / 1000:.0f}k")
+    print(f"\n  {'роль':<18}{'$':>8}{'доля':>6}{'советник':>10}{'агентов':>9}{'запросов':>10}")
+    for role, s in sorted(roles.items(), key=lambda kv: -kv[1].usd):
+        print(f"  {role:<18}{s.usd:>8.1f}{s.usd / total * 100:>5.0f}%{s.advisor:>10.1f}"
+              f"{agents.get(role, 0) or '-':>9}{s.req:>10}")
+    if others:
+        print("  прочее по description:", "; ".join(f"{d} x{n}" for d, n in others.most_common(5)))
+
+    print("\n  по задачам: $ без оркестратора, минуты по state.js за вычетом ожиданий")
+    print(f"  {'задача':<8}{'метка':<10}{'модель':<16}{'исполнение':>11}{'советник':>9}{'ревью':>7}"
+          f"{'итого':>7}{'контекстов':>11}{'мин':>6}")
+    for t in tickets:
+        T = per_task.get(t.get("id"), {})
+        a, b = usage.parse_ts(t.get("startedAt")), usage.parse_ts(t.get("finishedAt"))
+        mins = f"{active_min(a, b):.0f}" if a and b else "-"
+        model = "+".join(m for m, _ in models.get(t.get("id"), collections.Counter()).most_common()) or "-"
+        cost = T.get("исполнение", 0) + T.get("советник", 0) + T.get("ревью", 0)
+        print(f"  {t.get('id', '?'):<8}{t.get('model') or '-':<10}{model[:15]:<16}{T.get('исполнение', 0):>11.1f}"
+              f"{T.get('советник', 0):>9.1f}{T.get('ревью', 0):>7.1f}{cost:>7.1f}"
+              f"{int(T.get('контекстов', 0)):>11}{mins:>6}")
+    lost = sorted(set(per_task) - {t.get("id") for t in tickets})
+    if lost:
+        print(f"  номера из description без задачи в state.js: {', '.join(lost)}")
+
 
 def cmd_cost(args):
     """Деньги по сессии: сколько стоил оркестратор и сколько исполнители."""
@@ -384,6 +516,7 @@ def cmd_find(args):
 
 
 COMMANDS = {
+    "run": cmd_run,
     "cost": cmd_cost,
     "ceiling": cmd_ceiling,
     "curve": cmd_curve,
