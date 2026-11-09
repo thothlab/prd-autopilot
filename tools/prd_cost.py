@@ -11,50 +11,51 @@
     python3 tools/prd_cost.py agent   <файл.jsonl>     профиль одного исполнителя
     python3 tools/prd_cost.py find    [подстрока]      найти сессии по маркеру в тексте
 
-Сессия задаётся путём к `.jsonl`, либо парой `<каталог-проекта>/<id-сессии>` —
-искать будет от `~/.claude/projects`.
+Сессия задаётся путём к `.jsonl`, парой `<каталог-проекта>/<id-сессии>` или
+одним id — искать будет от `~/.claude/projects`.
 
-Деньги считаются по списочным ценам API (таблица PRICE ниже), а не по счёту
-подписки: это мера того, во что прогон обходится по объёму, и она сопоставима
-между прогонами. Кэш дороже и дешевле обычного входа в разы, поэтому входные
-токены приводятся к «эквиваленту базовой цены»: чтение по множителю модели
-(x0.1, у Opus 5.5 x0.05, у Fable 5.1 x0.025), запись 5m x1.25, запись 1h x2. Цены меняются — сверяйтесь с прайсом перед тем, как цитировать
-абсолютные числа; отношения между прогонами устойчивее абсолютных сумм.
+Деньги считаются так же, как карточку считает `skills/prd/tools/usage.py`:
+по списочным ценам API, а не по счёту подписки, с вызовами советника из
+`usage.iterations` и двойной ценой быстрого режима, по встроенной таблице `usage.py`.
+Вход ещё приводится к «эквиваленту базовой цены»: сколько токенов обычного
+входа стоили бы столько же, сколько прочитанное с чтением и записью кэша. Цены меняются — сверяйтесь с
+прайсом перед тем, как цитировать абсолютные числа; отношения между прогонами
+устойчивее абсолютных сумм.
 """
 
 import collections
+import glob
 import io
 import json
 import os
+import re
 import statistics
 import sys
 
-ROOT = os.path.expanduser("~/.claude/projects")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "skills", "prd", "tools"))
+import usage  # noqa: E402  одни цены и один разбор usage с карточкой дашборда
 
-# $ за миллион токенов: (вход, выход, множитель чтения кэша), прайс на 10.2026.
-# Модель, которой здесь нет, считается по Opus 5.5.
-PRICE = {
-    "claude-fable-5-1": (10.0, 50.0, 0.025),
-    "claude-fable-5": (10.0, 50.0, 0.1),
-    "claude-opus-5-5": (4.0, 20.0, 0.05),
-    "claude-opus-5": (5.0, 25.0, 0.1),
-    "claude-opus-4-8": (5.0, 25.0, 0.1),
-    "claude-sonnet-5-5": (2.0, 10.0, 0.1),
-    "claude-sonnet-5": (2.0, 10.0, 0.1),
-    "claude-haiku-5-5": (0.10, 0.50, 0.1),
-    "claude-haiku-4-5": (1.0, 5.0, 0.1),
-}
-DEFAULT_PRICE = PRICE["claude-opus-5-5"]
+ROOT = usage.ROOT
+PRICES = usage.builtin_prices()
+
 
 
 # ---------- разбор транскрипта ----------
 
-def resolve(arg):
-    """Путь к .jsonl сессии из пути или из пары <проект>/<id>."""
+def locate(arg):
+    """Путь к .jsonl сессии из пути, пары <проект>/<id> или одного id; не нашёл — None."""
     for cand in (arg, arg + ".jsonl", os.path.join(ROOT, arg), os.path.join(ROOT, arg + ".jsonl")):
         if os.path.isfile(cand):
             return cand
-    sys.exit(f"не нашёл транскрипт: {arg}")
+    hits = glob.glob(os.path.join(ROOT, "*", arg + ".jsonl"))
+    return hits[0] if hits else None
+
+
+def resolve(arg):
+    path = locate(arg)
+    if not path:
+        sys.exit(f"не нашёл транскрипт: {arg}")
+    return path
 
 
 def subagents(main_path):
@@ -64,12 +65,13 @@ def subagents(main_path):
     return [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith(".jsonl")]
 
 
-def records(path):
-    """Оплаченные запросы: записи ассистента с непустым usage, по одной на message.id.
+def records(path, lo=None, hi=None):
+    """Оплаченные запросы с их временем: записи ассистента с непустым usage, по одной на message.id.
 
     Ответ пишется в транскрипт строкой на каждый блок, и у всех строк один и тот же
-    usage — без дедупа счёт выходит в 2-3 раза больше настоящего."""
-    seen = set()
+    usage — без дедупа счёт выходит в 2-3 раза больше настоящего. Блоки контента
+    собираются со всех строк ответа: по одной первой строке вызовов видно вчетверо меньше."""
+    merged = {}
     for line in io.open(path, encoding="utf-8", errors="replace"):
         if '"usage"' not in line:
             continue
@@ -80,9 +82,19 @@ def records(path):
         if d.get("type") != "assistant":
             continue
         msg = d.get("message") if isinstance(d.get("message"), dict) else {}
-        if msg.get("usage") and msg.get("id") not in seen:
-            seen.add(msg.get("id"))
-            yield msg
+        if not msg.get("usage") or msg.get("model") == "<synthetic>":
+            continue
+        key = msg.get("id")
+        if key in merged:
+            if merged[key]:
+                merged[key][0]["content"] = blocks(merged[key][0]) + blocks(msg)
+            continue
+        t = usage.parse_ts(d.get("timestamp"))
+        if lo is not None and (t is None or t < lo or (hi is not None and t > hi)):
+            merged[key] = None
+            continue
+        merged[key] = (dict(msg), t)
+    return [r for r in merged.values() if r]
 
 
 def blocks(msg):
@@ -90,11 +102,26 @@ def blocks(msg):
     return c if isinstance(c, list) else []
 
 
+def price_part(part, model, fast, prices):
+    """$, вход в эквиваленте базовой цены и выход одной части запроса."""
+    b = usage.Bucket()
+    b.add(part, model, fast, prices)
+    base = re.sub(r"\[.*\]$", "", model or "")
+    rates = prices["models"].get(base) or prices["models"].get(usage.FALLBACK) \
+        or usage.rates5(*usage.BUILTIN[usage.FALLBACK])
+    pin, pout = rates[0], rates[4]
+    k = 2.0 if fast else 1.0
+    return b.usd, (b.usd / k - b.output * pout / 1e6) * 1e6 / pin, b.output
+
+
 class Stats:
     """Счётчики одного контекста: денег, запросов, вызовов, размера контекста."""
 
-    def __init__(self):
+    def __init__(self, prices=None):
+        self.prices = prices or PRICES
         self.usd = 0.0
+        self.advisor = 0.0    # $ вызовов советника, уже внутри usd
+        self.advisor_calls = 0
         self.equiv = 0.0      # вход в эквиваленте базовой цены
         self.out = 0
         self.req = 0
@@ -102,21 +129,31 @@ class Stats:
         self.ctx = []
 
     def add(self, msg):
+        """Учесть запрос; вернуть его $ и долю советника в них."""
         u = msg["usage"]
-        pin, pout, read = PRICE.get(msg.get("model"), DEFAULT_PRICE)
-        cc = u.get("cache_creation") or {}
-        equiv = (u.get("input_tokens", 0)
-                 + u.get("cache_read_input_tokens", 0) * read
-                 + cc.get("ephemeral_1h_input_tokens", 0) * 2.0
-                 + cc.get("ephemeral_5m_input_tokens", 0) * 1.25)
-        self.equiv += equiv
-        self.out += u.get("output_tokens", 0)
-        self.usd += equiv / 1e6 * pin + u.get("output_tokens", 0) / 1e6 * pout
+        fast = u.get("speed") == "fast"
+        usd = adv = 0.0
+        ctx = 0
+        # вызовы советника лежат в iterations со своей моделью, верхний usage их не включает;
+        # зато он складывает вход частей до и после советника, и размер контекста по нему вдвое больше
+        for part in u.get("iterations") or [u]:
+            p_usd, equiv, out = price_part(part, part.get("model") or msg.get("model"), fast, self.prices)
+            usd += p_usd
+            self.equiv += equiv
+            self.out += out
+            if part.get("type") == "advisor_message":
+                adv += p_usd
+                self.advisor_calls += 1
+            else:
+                ctx = max(ctx, part.get("cache_read_input_tokens", 0)
+                          + part.get("cache_creation_input_tokens", 0)
+                          + part.get("input_tokens", 0))
+        self.usd += usd
+        self.advisor += adv
         self.req += 1
-        self.ctx.append(u.get("cache_read_input_tokens", 0)
-                        + u.get("cache_creation_input_tokens", 0)
-                        + u.get("input_tokens", 0))
+        self.ctx.append(ctx)
         self.calls += sum(1 for b in blocks(msg) if b.get("type") == "tool_use")
+        return usd, adv
 
     @property
     def avg_ctx(self):
@@ -129,7 +166,7 @@ class Stats:
 
 def scan(path):
     s = Stats()
-    for msg in records(path):
+    for msg, _ in records(path):
         s.add(msg)
     return s
 
@@ -156,6 +193,9 @@ def cmd_cost(args):
               f"средний контекст {sub_ctx / max(sub_req, 1) / 1000:.0f}k")
         share = sub_usd / total * 100 if total else 0
         print(f"  ИТОГО:       ${total:8.0f}  доля исполнителей {share:.0f}%")
+        adv = main.advisor + sum(s.advisor for _, s in subs)
+        n_adv = main.advisor_calls + sum(s.advisor_calls for _, s in subs)
+        print(f"  советник:    ${adv:8.0f}  {n_adv:5d} вызовов, {adv / total * 100 if total else 0:.0f}% итога")
         print(f"  вход-эквивалент {(main.equiv + sum(s.equiv for _, s in subs)) / 1e6:.0f}M, "
               f"выход {(main.out + sum(s.out for _, s in subs)) / 1e6:.2f}M")
         if subs:
@@ -275,7 +315,7 @@ def cmd_agent(args):
         tools = collections.Counter()
         results = []
         pending = {}
-        for msg in records(path):
+        for msg, _ in records(path):
             s.add(msg)
             for b in blocks(msg):
                 if b.get("type") == "tool_use":
