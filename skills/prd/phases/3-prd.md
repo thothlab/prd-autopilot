@@ -108,7 +108,7 @@
 type: prd
 title: <название>
 description: <одно предложение>
-tags: [<домен/стек>]
+tags: [project/<папка проекта>, <домен/стек>]
 prd: prd_XX
 generated: { by: claude-code/opus-5, at: <ISO 8601> }
 ---

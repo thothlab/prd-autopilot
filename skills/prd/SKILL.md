@@ -146,7 +146,7 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] �
 | Obsidian-vault под git | **vault** | `<vault>/Projects/<project>/<initiative>/PRD/` | `<vault>/.../<initiative>/specs/` |
 | vault не найден или не под git | **local** | `<repo>/.prd/PRD/` | `<repo>/.prd/specs/` |
 
-Имена файлов внутри `prdRoot` **одинаковые в обоих режимах** — так ни одна фаза не должна помнить, где она работает. Всё, что специфично для vault (OKF-frontmatter, `index.md`, `Правки.md`, `[[wikilinks]]`, коммит в репозиторий vault), в local-режиме просто не выполняется, и об этом говорится одной строкой во вступительном блоке. Подробности — `phases/0-preflight.md`.
+Имена файлов внутри `prdRoot` **одинаковые в обоих режимах** — так ни одна фаза не должна помнить, где она работает. Всё, что специфично для vault (OKF-frontmatter, `index.md`, `Правки.md`, `[[wikilinks]]`, коммит в репозиторий vault), в local-режиме просто не выполняется, и об этом говорится одной строкой во вступительном блоке. Подробности — `phases/0-preflight.md`. Ссылки, теги и `index.md` в vault-режиме — по разделу «Схема vault» скилла `vault-reporting`: документы PRD подчиняются ей так же, как ручные заметки.
 
 ```
 <prdRoot>/
