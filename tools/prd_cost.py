@@ -11,6 +11,7 @@
     python3 tools/prd_cost.py compose <сессия>         чем набит контекст
     python3 tools/prd_cost.py agent   <файл.jsonl>     профиль одного исполнителя
     python3 tools/prd_cost.py find    [подстрока]      найти сессии по маркеру в тексте
+    python3 tools/prd_cost.py oracle  <сессия> [...]   потолки выгоды механизмов экономии по готовым траекториям
 
 Сессия задаётся путём к `.jsonl`, парой `<каталог-проекта>/<id-сессии>` или
 одним id — искать будет от `~/.claude/projects`.
@@ -516,6 +517,140 @@ def cmd_find(args):
         print(f"  {size // 1048576:4d} МБ  исполнителей {subs:3d}  {name}")
 
 
+EDITS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+CHECK = re.compile(r"\b(test|build|lint|gradlew?|xcodebuild|npm|npx|pnpm|yarn|pytest|cargo|make|tsc|swift|vitest|jest|ktlint|detekt|ruff|mypy|distill)\b")
+# отладка руками; прогоны тестов и сборки сюда не входят - их шаг 5 Разработки требует от оркестратора
+DEBUG = re.compile(r"docker|psql|playwright|curl |kill |test-results|error-context|\.log\b"
+                   r"|\b(cat|head|tail|sed -n|grep|rg)\b.*\.(kt|swift|ts|tsx|rs|py|go|css|java)\b")
+OWN_TOOLS = re.compile(r"git (diff|show|log|status)|usage\.py|state\.py|quotes\.py|prd_cost|_rep_|_task_|full-\d+\.log")
+STATE_INLINE = re.compile(r"state\.js.*(<<|python3? -|node -e)|(<<|python3? -|node -e).*state\.js", re.S)
+HEAD_TAIL, FULL_SENDS, CHARS_PER_TOKEN = 2048 + 1536, 2, 3.5
+
+
+def trajectory(path):
+    """Запросы по порядку (msg, $), результаты инструментов (номер запроса после, длина, имя, команда)
+    и номера запросов, перед которыми контекст сжимался."""
+    reqs, index, results, tools, compacts = [], {}, [], {}, []
+    for line in io.open(path, encoding="utf-8", errors="replace"):
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        msg = d.get("message") if isinstance(d.get("message"), dict) else {}
+        if d.get("type") == "system" and "compact" in str(d.get("subtype", "")):
+            compacts.append(len(reqs))
+        elif d.get("type") == "assistant" and msg.get("usage") and msg.get("model") != "<synthetic>":
+            key = msg.get("id")
+            if key not in index:
+                index[key] = len(reqs)
+                reqs.append(dict(msg, content=[]))
+            reqs[index[key]]["content"] += blocks(msg)
+            for b in blocks(msg):
+                if b.get("type") == "tool_use":
+                    inp = b.get("input") or {}
+                    tools[b.get("id")] = (b.get("name", "?"), str(inp.get("command", "")), inp)
+        elif d.get("type") == "user":
+            for b in blocks(msg):
+                if b.get("type") == "tool_result":
+                    c = b.get("content")
+                    size = len(c) if isinstance(c, str) else sum(
+                        len(x.get("text", "")) for x in c or [] if isinstance(x, dict))
+                    name, cmd, _ = tools.get(b.get("tool_use_id"), ("?", "", {}))
+                    results.append((len(reqs), size, name, cmd))
+    s = Stats()
+    return [(m, s.add(m)[0]) for m in reqs], results, compacts
+
+
+def read_price(msg):
+    rates = PRICES["models"].get(re.sub(r"\[.*\]$", "", msg.get("model") or "")) \
+        or PRICES["models"].get(usage.FALLBACK) or usage.rates5(*usage.BUILTIN[usage.FALLBACK])
+    return rates[3] / 1e6
+
+
+def ceilings(reqs, results, compacts):
+    """$ потолков: Action Fusion, ObservationPack и его долю на логах сборки."""
+    fusion = observe = logs = 0.0
+    names = [[b.get("name") for b in blocks(m) if b.get("type") == "tool_use"] for m, _ in reqs]
+    cmds = [[str((b.get("input") or {}).get("command", "")) for b in blocks(m) if b.get("type") == "tool_use"]
+            for m, _ in reqs]
+    for k in range(len(reqs) - 1):
+        # правка, а следующим запросом - только решение запустить проверку: этот запрос и сэкономила бы склейка
+        if names[k] and set(names[k]) <= EDITS and names[k + 1][:1] == ["Bash"] and CHECK.search(cmds[k + 1][0]):
+            fusion += reqs[k + 1][1]
+    n = len(reqs)
+    for after, size, name, cmd in results:
+        # после сжатия старый результат больше не перечитывается
+        replays = min([c for c in compacts if c > after] or [n]) - after - FULL_SENDS
+        if size > HEAD_TAIL and replays > 0 and after < n:
+            usd = (size - HEAD_TAIL) / CHARS_PER_TOKEN * replays * read_price(reqs[after][0])
+            observe += usd
+            if name == "Bash" and size > 8192 and CHECK.search(cmd):
+                logs += usd
+    return fusion, observe, logs
+
+
+def cmd_oracle(args):
+    """Сколько могли бы снять механизмы экономии - до того, как тратить прогон на проверку."""
+    money = collections.Counter()
+    fusion, observe, logs = collections.Counter(), collections.Counter(), collections.Counter()
+    build = collections.Counter()
+    build_ctx = []
+    for arg in args:
+        main_path = resolve(arg)
+        files = [("оркестратор", main_path)]
+        for p in subagents(main_path):
+            try:
+                desc = json.load(io.open(p[:-6] + ".meta.json", encoding="utf-8")).get("description", "")
+            except (OSError, ValueError):
+                desc = ""
+            files.append((role_of(desc), p))
+        for role, path in files:
+            reqs, results, compacts = trajectory(path)
+            money[role] += sum(usd for _, usd in reqs)
+            f, o, lg = ceilings(reqs, results, compacts)
+            fusion[role] += f
+            observe[role] += o
+            logs[role] += lg
+            if role != "оркестратор":
+                continue
+            start = next((i for i, (m, _) in enumerate(reqs) for b in blocks(m)
+                          if b.get("type") == "tool_use" and b.get("name") in ("Agent", "Task")
+                          and role_of((b.get("input") or {}).get("description", "")) == "исполнители"), None)
+            if start is None:
+                continue
+            build["$"] += sum(usd for _, usd in reqs[start:])
+            build["$ всего"] += sum(usd for _, usd in reqs)
+            for m, _ in reqs[start:]:
+                u = m["usage"]
+                build_ctx.append(u.get("input_tokens", 0) + u.get("cache_read_input_tokens", 0)
+                                 + u.get("cache_creation_input_tokens", 0))
+                for b in blocks(m):
+                    if b.get("type") == "tool_use" and b.get("name") == "Bash":
+                        c = str((b.get("input") or {}).get("command", ""))
+                        build["bash"] += 1
+                        if STATE_INLINE.search(c):
+                            build["state"] += 1
+                        elif DEBUG.search(c) and not OWN_TOOLS.search(c):
+                            build["руками"] += 1
+    total = sum(money.values()) or 1
+    print(f"сессий {len(args)}, ${total:.0f} по списочным ценам")
+    print(f"{'роль':18}{'$':>8}{'доля':>6}   потолок, % денег роли: {'склейка':>8}{'вывод':>7}{'логи':>6}")
+    for role, usd in money.most_common():
+        k = 100 / usd if usd else 0
+        print(f"{role:18}{usd:8.0f}{100 * usd / total:5.0f}%   {'':23}{fusion[role] * k:7.1f}%"
+              f"{observe[role] * k:6.1f}%{logs[role] * k:5.1f}%")
+    print(f"всего: склейка {100 * sum(fusion.values()) / total:.1f}%, вывод {100 * sum(observe.values()) / total:.1f}%,"
+          f" из него логи сборки {100 * sum(logs.values()) / total:.1f}% денег всех прогонов")
+    if build_ctx:
+        bash = build["bash"] or 1
+        print(f"оркестратор на Разработке: {100 * build['$'] / (build['$ всего'] or 1):.0f}% его денег, "
+              f"средний контекст {sum(build_ctx) / len(build_ctx) / 1000:.0f}k; из {build['bash']} команд Bash "
+              f"{100 * build['руками'] / bash:.0f}% отладки руками (стенд, артефакты тестов, логи, код), "
+              f"{100 * build['state'] / bash:.0f}% записи state.js встроенным скриптом")
+    print("склейка - правка и проверка одним вызовом; вывод - большие результаты ссылкой после двух показов;"
+          " это потолки, а не обещания")
+
+
 COMMANDS = {
     "run": cmd_run,
     "cost": cmd_cost,
@@ -524,6 +659,7 @@ COMMANDS = {
     "compose": cmd_compose,
     "agent": cmd_agent,
     "find": cmd_find,
+    "oracle": cmd_oracle,
 }
 
 
