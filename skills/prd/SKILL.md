@@ -164,7 +164,7 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] �
 ├── specs/<domain>/spec.md   спек-дельты этого PRD: ADDED / MODIFIED / REMOVED
 ├── analysis/<name>.md       длинные разборы: карты, дампы, находки
 └── run/prd_XX/
-    ├── state.js             состояние прогона — единственный файл, который ты пишешь
+    ├── state.js             состояние прогона — единственный файл, который ты пишешь, через `tools/state.py`
     ├── dashboard.html       человеческий вид — копируется один раз и больше не трогается
     ├── usage.js             расход токенов — пишет `<skillDir>/tools/usage.py`, не ты
     └── README.md            как читать эту папку — для человека, пишется один раз
