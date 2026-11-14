@@ -82,7 +82,10 @@ def value(raw, is_json, stamp):
 def assign(obj, expr, stamp):
     m = re.match(r"^([\w.]+)(\+?)(:?)=(.*)$", expr, re.S)
     if not m:
-        sys.exit(f"state: не понял правку {expr!r}: нужно k=v, k:=json, k+=v")
+        verb = re.match(r"^(set|ticket|stage)\s", expr)
+        hint = (f": слово {verb.group(1)} попало в кавычки вместе с правкой - вынеси его отдельным аргументом"
+                if verb else ": нужно k=v, k:=json, k+=v")
+        sys.exit(f"state: не понял правку {expr[:80]!r}{hint} - ничего не записано")
     key, append, is_json, raw = m.groups()
     *path, last = key.split(".")
     for k in path:
@@ -168,8 +171,10 @@ def main(argv):
             for obj in target:
                 assign(obj, op, stamp)
             wrote = True
+        elif "=" in op:
+            sys.exit(f"state: правке {op[:80]!r} не к чему относиться - перед ней нужен set, ticket NN или stage ID; ничего не записано")
         else:
-            sys.exit(f"state: не понял {op!r} - см. python3 state.py без аргументов")
+            sys.exit(f"state: не понял {op[:80]!r} - см. python3 state.py без аргументов; ничего не записано")
         i += 1
     if wrote:
         state["updatedAt"] = stamp
