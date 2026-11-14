@@ -246,18 +246,26 @@ def main(argv):
 
     lead, agents = Bucket(), Bucket()
     seen, unpriced, n_agents, found = set(), set(), 0, []
+    ctx_now = None
     for s in sessions:
         main_path, subs = transcripts(s)
         if not main_path:
             continue
         found.append(s)
+        if s == sid:
+            lead.context = 0
         scan(main_path, lead, lo, hi, seen, unpriced, prices)
+        if s == sid:
+            ctx_now = lead.context
         for p in subs:
             n_agents += scan(p, agents, lo, hi, seen, unpriced, prices)
     if not found:
         print("usage: транскрипты сессий не найдены - usage.js не тронут")
         return
 
+    # по нему решается перезапуск на шве волны: после /clear или --resume контекст прежней сессии не годится
+    if ctx_now is not None:
+        lead.context = ctx_now
     total = Bucket()
     for b in (lead, agents):
         for f in ("input", "cache_read", "cache_write", "output", "requests", "usd"):
