@@ -15,7 +15,7 @@
     set tests:='{"passed": 34, "failed": 0}' requirements.done:=9
     ticket 03 repairs+=1 calls+=44 repairFindings+="дубль при повторном нажатии"
     set concerns+="FavoritesScreen.kt:40 - два формата даты"
-    wait restart "контекст 310k, продолжу в новой сессии с задачи 06"
+    wait action "пуш в main - нужно твоё да"
     unwait                                 ответ получен: waiting -> waits
     status                                 печатает слоты и счёт, ничего не пишет
 

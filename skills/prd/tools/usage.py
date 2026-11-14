@@ -263,7 +263,7 @@ def main(argv):
         print("usage: транскрипты сессий не найдены - usage.js не тронут")
         return
 
-    # по нему решается перезапуск на шве волны: после /clear или --resume контекст прежней сессии не годится
+    # после /clear, --resume или сжатия контекст прежней сессии карточке не годится
     if ctx_now is not None:
         lead.context = ctx_now
     total = Bucket()
