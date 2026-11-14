@@ -42,7 +42,7 @@ argument-hint: "[full|semi|interview|manual] [strict|deep] [polish] [agents N] �
 | 7 Приборы | `phases/7-instruments.md` — **в Фазе 4**, когда задачи нарезаны | `state.js`, `dashboard.html` (открыт пользователю) |
 | 8 Приёмка | `phases/8-final.md` | слепая приёмка, итоговый отчёт |
 | 9 Память | `phases/9-memory.md` — **в Фазе 5, когда сборка что-то выяснила, и в Фазе 8** | `CLAUDE.md` / `AGENTS.md`, запись в `Правки.md` |
-| — | `phases/5-repair.md` — когда задача вернулась не с `DONE` | ремонт, ретраи, поправки спеки |
+| — | `phases/5-repair.md` — когда задача вернулась не с `DONE` или полный прогон красный | диагност, ремонт, ретраи, поправки спеки |
 | — | `phases/10-archive.md` — только по команде `/prd archive NN` | дельты влиты в живые спеки, PRD в `Archive/` |
 | — | `phases/rationalizations.md` — на провале гейта, когда ловишь себя на оправдании, и один раз перед отчётом | ничего; это чеклист |
 | — | `phases/polish.md` — только с параметром `polish` | круги доводки |

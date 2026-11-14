@@ -47,6 +47,7 @@ PRICES = usage.builtin_prices()
 
 # роль субагента по description из meta.json: первое совпадение сверху
 ROLES = (
+    ("диагност", r"diagnos|диагност"),
     ("повторное ревью", r"re-?review|повторн\w* ревью|^(review|ревью|verify).*(repair|починк|fix)"),
     ("ревью", r"^(prd\s*\d+\s*)?(review|ревью)|финальн\w* ревью|craft|manifest|манифест"),
     ("исполнители", r"^(prd\s*\d+\s*)?(task|задач|исполн)|^(continue|execute|fresh fix)\b.*task"),
