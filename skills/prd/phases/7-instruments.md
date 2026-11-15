@@ -29,6 +29,7 @@ window.STATE =
   "docsPath": "Projects/example/favorites/PRD/",
   "briefFile": "prd_03_brief.md",
   "memoryFile": "CLAUDE.md",
+  "codeRepo": "/Users/x/Projects/example-app",
   "codeBranch": "codex/prd-03-favorites-list",
   "skillDir": "/Users/x/.claude/skills/prd",
   "startedAt": "2026-08-17T14:02:06+03:00",

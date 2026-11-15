@@ -127,7 +127,7 @@
   .hero.ask .live{background:#1A0D06;outline:0}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,53,.6)}70%{box-shadow:0 0 0 9px rgba(255,107,53,0)}100%{box-shadow:0 0 0 0 rgba(255,107,53,0)}}
   .badge-ic{width:26px;height:26px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center}
-  .hero.won .badge-ic{color:#17864A}.hero.bad .badge-ic{color:#C81E1E}
+  .hero.won .badge-ic{color:#17864A}.hero.bad .badge-ic{color:#C81E1E}.hero.ask .badge-ic{color:#C8501E}
   .stripes{background-image:linear-gradient(135deg,rgba(255,255,255,.28) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.28) 50%,rgba(255,255,255,.28) 75%,transparent 75%,transparent);background-size:22px 22px;animation:stripes 1.1s linear infinite}
   .hero.ask .stripes{background-image:linear-gradient(135deg,rgba(255,107,53,.5) 25%,transparent 25%,transparent 50%,rgba(255,107,53,.5) 50%,rgba(255,107,53,.5) 75%,transparent 75%,transparent)}
   @keyframes stripes{to{background-position:22px 0}}
@@ -395,6 +395,7 @@ const I18N = {
     waitHint:"Ответ — в чате. Дальше работа пойдёт сама", waitBig:"ждём ответа · часы работы стоят",
     failState:"Работа остановилась", failH2:n=>`Этап «${n}» не прошёл`,
     doneState:"Сдано", doneDefault:"Работа сдана",
+    caveatState:"Сдано с оговорками", caveatDefault:"Работа сдана, но не всё закрыто",
     doneNeed:(k,p)=>`Для настоящего запуска ${[k ? `впиши <b>${k} ${plural(k,"переменную","переменные","переменных")}</b> окружения` : "",
       p ? `замени <b>${p} ${plural(p,"заглушку","заглушки","заглушек")}</b> своими данными` : ""].filter(Boolean).join(" и ")}.`,
     doneNothing:"От тебя ничего не нужно — можно пользоваться.",
@@ -500,6 +501,7 @@ const I18N = {
     waitHint:"Answer in the chat. The work carries on by itself", waitBig:"waiting for you · the clock is stopped",
     failState:"The work has stopped", failH2:n=>`Stage "${n}" failed`,
     doneState:"Done", doneDefault:"The work is done",
+    caveatState:"Done with caveats", caveatDefault:"The work is delivered, but not everything is closed",
     doneNeed:(k,p)=>`To run it for real, ${[k ? `set <b>${en(k,"environment variable","environment variables")}</b>` : "",
       p ? `replace <b>${en(p,"placeholder","placeholders")}</b> with your data` : ""].filter(Boolean).join(" and ")}.`,
     doneNothing:"Nothing is needed from you — it is ready to use.",
@@ -856,7 +858,15 @@ function render(){
   const env = (S.debt && S.debt.emptyEnv) || [], ph = (S.debt && S.debt.placeholders) || [],
         asm = (S.debt && S.debt.assumptions) || [];
   let heroCls = "", stateLine, h2, lead = "", big = "", bigSub = "", hint = "";
-  if (fin){
+  const caveats = Array.isArray(S.caveats) ? S.caveats : [];
+  if (fin && caveats.length){
+    heroCls = "ask";
+    stateLine = `<span class="badge-ic">${ic("alert", "xs")}</span>${L.caveatState}`;
+    h2 = esc(S.result || L.caveatDefault);
+    lead = caveats.map(esc).join(" · ");
+    big = fmtClock(activeMs(S.startedAt, S.finishedAt));
+    bigSub = L.doneBig(hhmm(S.finishedAt));
+  } else if (fin){
     heroCls = "won";
     stateLine = `<span class="badge-ic">${ic("check", "xs")}</span>${L.doneState}`;
     h2 = esc(S.result || L.doneDefault);
