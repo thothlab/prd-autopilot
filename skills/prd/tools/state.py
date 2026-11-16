@@ -21,6 +21,9 @@
     commits                                сданные задачи, чьих коммитов нет в ветке, - ничего не пишет
     ticket 03 by-user "их слова" status=pending repairs:=0 retries:=0
 
+Пишет в `state.js` одна сессия: `owner` - id и pid сессии Claude Code, которая
+писала последней. Запись из другой сессии, пока владелец жив, отклоняется.
+
 Скрипт отказывает - и не пишет ничего - на третьем `repairs`, `retries` или
 `handoffs` задачи, на любой правке задачи `failed`, на `done` без `commit` и
 на `set finishedAt=now`, пока прогон не готов: красный или непроведённый
@@ -147,6 +150,29 @@ def status(state):
     print(f"в работе {len(busy)}" + (f" ({', '.join(busy)})" if busy else "")
           + f"; ждут {len(pend)}" + (f" ({', '.join(pend)})" if pend else "")
           + f"; сдано {done} из {len(t)}" + (f"; ждём пользователя: {w.get('kind')}" if w else ""))
+
+
+def claude_alive(pid):
+    """Жив ли процесс claude с этим pid. Не удалось выяснить - считаем, что нет: ложный отказ
+    останавливает прогон, а пропущенный второй писатель - всего лишь поведение без этой проверки."""
+    try:
+        os.kill(int(pid), 0)
+        out = subprocess.run(["ps", "-o", "comm=", "-p", str(int(pid))], capture_output=True, text=True).stdout
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
+    return "claude" in out.lower()
+
+
+def foreign_owner(state):
+    """Причина отказа, если state.js ведёт другая живая сессия Claude Code, иначе None."""
+    sid, pid = os.environ.get("CLAUDE_CODE_SESSION_ID"), os.environ.get("CLAUDE_PID")
+    own = state.get("owner") or {}
+    if not (sid and pid) or not own or own.get("session") == sid or str(own.get("pid")) == pid:
+        return None
+    if not claude_alive(own.get("pid")):
+        return None
+    return (f"прогон ведёт другая живая сессия Claude Code (pid {own.get('pid')}, с {str(own.get('since'))[11:16]}) - "
+            "два окна затрут state.js и запустят исполнителей в одно дерево; закрой ту сессию")
 
 
 def code_repo(state):
@@ -290,6 +316,14 @@ def main(argv):
             sys.exit(f"state: не понял {op[:80]!r} - см. python3 state.py без аргументов; ничего не записано")
         i += 1
     refused = guard_tickets(before, state)
+    if wrote:
+        foreign = foreign_owner(before)
+        if foreign:
+            refused.insert(0, foreign)
+        sid, pid = os.environ.get("CLAUDE_CODE_SESSION_ID"), os.environ.get("CLAUDE_PID")
+        own = before.get("owner") or {}
+        if sid and pid and (own.get("session"), str(own.get("pid"))) != (sid, pid):
+            state["owner"] = {"session": sid, "pid": int(pid) if pid.isdigit() else pid, "since": stamp}
     closing = not before.get("finishedAt") and state.get("finishedAt")
     drift = []
     if closing:
