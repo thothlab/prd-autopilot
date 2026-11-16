@@ -19,6 +19,10 @@
     unwait                                 ответ получен: waiting -> waits
     status                                 печатает слоты и счёт, ничего не пишет
     commits                                сданные задачи, чьих коммитов нет в ветке, - ничего не пишет
+
+    python3 state.py peers <codeRepo> <vaultRoot|-> [<свой RUN>]
+        незакрытые прогоны в том же репозитории кода и его worktree:
+        `! идёт` - их владелец жив, `- прерван` - нет; ничего не пишет
     ticket 03 by-user "их слова" status=pending repairs:=0 retries:=0
 
 Пишет в `state.js` одна сессия: `owner` - id и pid сессии Claude Code, которая
@@ -175,6 +179,51 @@ def foreign_owner(state):
             "два окна затрут state.js и запустят исполнителей в одно дерево; закрой ту сессию")
 
 
+def common_dir(repo):
+    r = git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    return os.path.realpath(r.stdout.strip()) if r.returncode == 0 else None
+
+
+def toplevel(repo):
+    r = git(repo, "rev-parse", "--show-toplevel")
+    return os.path.realpath(r.stdout.strip()) if r.returncode == 0 else None
+
+
+def peers(repo, vault, self_run):
+    """Незакрытые прогоны в том же репозитории кода, включая его worktree."""
+    import glob
+    mine = common_dir(repo)
+    if not mine:
+        sys.exit(f"state: {repo} - не git-репозиторий")
+    # local-прогоны лежат в .prd своего дерева: основного и каждого worktree
+    trees = [l[len("worktree "):] for l in git(repo, "worktree", "list", "--porcelain").stdout.splitlines()
+             if l.startswith("worktree ")] or [repo]
+    main_tree = os.path.realpath(trees[0])  # porcelain всегда начинается с основного дерева
+    paths = [p for t in trees for p in glob.glob(os.path.join(t, ".prd", "PRD", "run", "*", "state.js"))]
+    if vault and vault != "-":
+        paths += glob.glob(os.path.join(vault, "Projects", "**", "run", "prd_*", "state.js"), recursive=True)
+    me = os.path.realpath(self_run) if self_run else None
+    for p in sorted(set(paths)):
+        run = os.path.dirname(p)
+        if me and os.path.realpath(run) == me:
+            continue
+        try:
+            s = load(p)
+        except SystemExit:
+            continue
+        if s.get("finishedAt"):
+            continue
+        theirs = code_repo(s) or (os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(run))))
+                                  if os.sep + ".prd" + os.sep in p else None)
+        if not theirs or not os.path.isdir(theirs) or common_dir(theirs) != mine:
+            continue
+        own = s.get("owner") or {}
+        live = claude_alive(own.get("pid")) if own.get("pid") else False
+        tree = "основная копия" if toplevel(theirs) == main_tree else f"worktree {theirs}"
+        print(f"{'! идёт' if live else '- прерван'} {s.get('prd', '?')} {s.get('slug', '')} - "
+              f"ветка {s.get('codeBranch', '?')}, {tree}; {run}")
+
+
 def code_repo(state):
     repo = state.get("codeRepo")
     if not repo and state.get("storage") == "local" and state.get("prdRoot"):
@@ -264,6 +313,9 @@ def finish_open(state):
 def main(argv):
     if len(argv) < 3 or argv[1] in ("-h", "--help", "help"):
         sys.exit(__doc__)
+    if argv[1] == "peers":
+        peers(argv[2], argv[3] if len(argv) > 3 else None, argv[4] if len(argv) > 4 else None)
+        return
     run, ops = argv[1], argv[2:]
     if ops == ["-"]:
         try:
