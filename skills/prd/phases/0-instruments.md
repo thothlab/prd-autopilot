@@ -15,7 +15,7 @@
 
 ```bash
 RUN="$prdRoot/run/prd_XX"
-TPL=$(find -L ~/.claude/skills ~/.agents/skills ~/.claude/plugins .claude/skills .agents/skills \
+TPL=$(find -L ~/.codex/skills ~/.claude/skills ~/.agents/skills ~/.claude/plugins .codex/skills .claude/skills .agents/skills \
         -maxdepth 6 -path '*/prd/phases/dashboard-template.html' 2>/dev/null | head -1)
 mkdir -p "$RUN" && cp "$TPL" "$RUN/dashboard.html" && echo "skillDir = ${TPL%/phases/*}"
 ```
@@ -24,7 +24,7 @@ mkdir -p "$RUN" && cp "$TPL" "$RUN/dashboard.html" && echo "skillDir = ${TPL%/ph
 
 **`find -L` и ни одной `*` в списке корней** — обе части несущие. Скиллы ставятся симлинками (`~/.claude/skills/prd` → `~/.agents/skills/prd`), и обычный `find` симлинк не проходит: он молчит, пока файл лежит прямо там. Глоб `plugins/*/` хуже: в zsh несовпавший глоб рушит команду до запуска, поиск не происходит вовсе, и `skillDir` выходит пустым — а в bash та же строка работает, из-за чего это трудно заметить.
 
-Пустой вывод значит, что скилл лежит вне этих пяти корней: расширь поиск один раз руками и иди дальше. Никогда не генерируй шаблон заново, не читай его в контекст и не правь после копирования.
+Пустой вывод значит, что скилл лежит вне этих корней: расширь поиск один раз руками и иди дальше. Никогда не генерируй шаблон заново, не читай его в контекст и не правь после копирования.
 
 ## 2. Записать `state.js`
 
